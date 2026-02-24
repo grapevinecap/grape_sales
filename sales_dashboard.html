@@ -230,29 +230,42 @@ header {
   border-top: 3px solid var(--wine); border-radius: 3px;
   padding: 14px 16px; box-shadow: var(--shadow-sm);
   transition: transform 0.15s, box-shadow 0.15s;
+  display: flex; flex-direction: column;
 }
 .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .kpi.k-gold { border-top-color: var(--gold); }
 .kpi.k-sage { border-top-color: var(--sage); }
 .kpi.k-dust { border-top-color: var(--dust); }
 .kpi.k-wine2 { border-top-color: var(--wine-muted); }
-.kpi-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dust); margin-bottom: 8px; }
-.kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1; }
+.kpi-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dust); margin-bottom: 4px; flex-shrink: 0; }
+.kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--ink); line-height: 1; }
 .kpi-sub { font-size: 9px; color: var(--dust); margin-top: 5px; }
 .kpi-body {
-  display: flex; align-items: flex-start;
-  justify-content: space-between; gap: 8px; margin-top: 6px;
+  display: flex; align-items: stretch;
+  justify-content: space-between; gap: 8px;
+  flex: 1; min-height: 0;
+}
+/* left side: big value sits at top, grows to push breakdown down */
+.kpi-body > .kpi-val {
+  align-self: flex-start;
+  margin-top: 2px;
 }
 .kpi-breakdown {
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex; flex-direction: column;
+  justify-content: space-between;   /* evenly spread lines to fill height */
   text-align: right; flex-shrink: 0;
+  flex: 1;                          /* take remaining vertical space */
+  gap: 0;
 }
 .kpi-bline {
-  font-size: 8px; color: var(--dust); white-space: nowrap;
+  color: var(--dust); white-space: nowrap;
   font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
+  /* font-size set by JS based on widget height */
+  font-size: 7.5px;
+  flex: 1; display: flex; align-items: center; justify-content: flex-end;
 }
 .kpi-bline .bline-label {
-  color: var(--dust); opacity: 0.7;
+  color: var(--dust); opacity: 0.7; margin-right: 3px;
 }
 
 /* ── SECTION GRID ── */
@@ -417,7 +430,7 @@ header {
 .prog-name { font-size: 10px; color: var(--ink); }
 .prog-stat { font-size: 9px; color: var(--dust); }
 .prog-bg { height: 5px; background: var(--parchment); border-radius: 3px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 3px; background: #4a7c9e; transition: width 0.5s ease; }
+.prog-fill { height: 100%; border-radius: 3px; background: rgb(107,31,42); transition: width 0.5s ease; }
 
 /* ── TABLE ── */
 .tbl-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
@@ -479,7 +492,7 @@ td.r { text-align: right; font-variant-numeric: tabular-nums; }
 .rev-stat { font-size: 9px; color: var(--dust); }
 .rev-bg { height: 5px; background: var(--parchment); border-radius: 3px; overflow: hidden; }
 .rev-fill { height: 100%; border-radius: 3px;
-  background: #4a7c9e;
+  background: rgb(107,31,42);
   transition: width 0.5s ease; }
 
 /* ── FOOTER ── */
@@ -670,7 +683,7 @@ footer {
             <div class="toggle-wrap">
               <button class="tog active" id="tog-ava-rev"  onclick="setToggle('ava','rev')">Revenue</button>
               <button class="tog"        id="tog-ava-tons" onclick="setToggle('ava','tons')">Tons</button>
-              <button class="tog"        id="tog-ava-pct"  onclick="setToggle('ava','pct')">% of Total</button>
+              <button class="tog"        id="tog-ava-pct"  onclick="setToggle('avaPct')">% of Total</button>
             </div>
           </div>
           <div class="card-body">
@@ -716,8 +729,8 @@ footer {
             <div class="toggle-wrap">
               <button class="tog active" id="tog-ppt-ppt"  onclick="setToggle('ppt','ppt')">$/Ton</button>
               <button class="tog"        id="tog-ppt-acre" onclick="setToggle('ppt','acre')">$/Acre</button>
-              <button class="tog active" id="tog-pptsort-abs" onclick="setToggle('pptSort','abs')">Ranked</button>
-              <button class="tog"        id="tog-pptsort-ava" onclick="setToggle('pptSort','ava')">By AVA</button>
+              <button class="tog active" id="tog-pptSort-abs" onclick="setToggle('pptSort','abs')">Ranked</button>
+              <button class="tog"        id="tog-pptSort-ava" onclick="setToggle('pptSort','ava')">By AVA</button>
             </div>
           </div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:0;">
@@ -1263,7 +1276,8 @@ function fmtN(n)  { return Math.round(n).toLocaleString(); }
 // ═══════════════════════════════════════════════════════════
 const TOGGLES = {
   donut:   'tons',   // tons | acres
-  ava:     'rev',    // rev  | tons | pct
+  ava:     'rev',    // rev  | tons
+  avaPct:  false,    // false | true  (overlay: show % of total instead of raw)
   ppt:     'ppt',    // ppt  | acre
   pptSort: 'abs',    // abs (greatest→least) | ava (grouped by AVA)
   var:     'rev',    // rev  | tons
@@ -1272,6 +1286,13 @@ const TOGGLES = {
 };
 
 function setToggle(chart, val) {
+  if (chart === 'avaPct') {
+    // Boolean toggle: clicking again turns it off
+    TOGGLES.avaPct = !TOGGLES.avaPct;
+    document.getElementById('tog-ava-pct')?.classList.toggle('active', TOGGLES.avaPct);
+    renderDashboard();
+    return;
+  }
   TOGGLES[chart] = val;
   document.querySelectorAll(`[id^="tog-${chart}-"]`).forEach(btn => {
     btn.classList.toggle('active', btn.id === `tog-${chart}-${val}`);
@@ -1540,14 +1561,16 @@ function renderDashboard() {
   const groupLabels = singleAva
     ? [...new Set(data.map(d=>d.vineyard))].sort()
     : avasInData.sort();
-  const avaMode = TOGGLES.ava; // 'rev' | 'tons' | 'pct'
+  const avaMode   = TOGGLES.ava;    // 'rev' | 'tons'
+  const avaIsPct  = TOGGLES.avaPct;  // true = show % of group total
   const statuses = ['Sold','Open','Custom Crush','Pending'];
 
-  // For pct mode: per-group total tons for normalisation
+  // For pct mode: per-group totals (same metric as selected)
   const groupTotals = {};
-  if (avaMode === 'pct') {
+  if (avaIsPct) {
     groupLabels.forEach(g => {
-      groupTotals[g] = data.filter(d=>d[groupField]===g).reduce((s,d)=>s+d.tons,0);
+      groupTotals[g] = data.filter(d=>d[groupField]===g)
+        .reduce((s,d) => s + (avaMode==='rev' ? d.revenue : d.tons), 0);
     });
   }
 
@@ -1556,19 +1579,17 @@ function renderDashboard() {
     data: groupLabels.map(g => {
       const raw = data.filter(d=>d[groupField]===g&&d.status===st)
                      .reduce((s,d) => s + (avaMode==='rev' ? d.revenue : d.tons), 0);
-      if (avaMode === 'rev')  return raw / 1e6;
-      if (avaMode === 'pct')  return groupTotals[g] > 0 ? (raw / groupTotals[g]) * 100 : 0;
-      return raw; // tons
+      if (avaIsPct) return groupTotals[g] > 0 ? (raw / groupTotals[g]) * 100 : 0;
+      return avaMode==='rev' ? raw / 1e6 : raw;
     }),
     backgroundColor: STATUS_COLORS[st] || '#aaa',
     borderRadius: 2,
   }));
 
   const avaBase = singleAva ? `by Vineyard (${avasInData[0]})` : 'by AVA';
+  const avaMetric = avaMode==='rev' ? 'Revenue' : 'Tons';
   document.getElementById('ava-rev-title').textContent =
-    avaMode === 'rev' ? 'Revenue ' + avaBase :
-    avaMode === 'pct' ? '% by Status ' + avaBase :
-    'Tons ' + avaBase;
+    avaIsPct ? `% ${avaMetric} by Status ` + avaBase : avaMetric + ' ' + avaBase;
 
   mkChart('c-ava-rev', {
     type: 'bar',
@@ -1580,10 +1601,10 @@ function renderDashboard() {
         x: { stacked:true, ticks:{...TICK_STYLE,maxRotation:35}, grid:{display:false} },
         y: {
           stacked: true,
-          max: avaMode === 'pct' ? 100 : undefined,
+          max: avaIsPct ? 100 : undefined,
           ticks:{...TICK_STYLE,
-            callback: v => avaMode==='rev' ? '$'+v.toFixed(0)+'M'
-                         : avaMode==='pct' ? v.toFixed(0)+'%'
+            callback: v => avaIsPct ? v.toFixed(0)+'%'
+                         : avaMode==='rev' ? '$'+v.toFixed(0)+'M'
                          : fmtN(v)+'T'
           }, grid:GRID_STYLE
         }
@@ -1769,17 +1790,27 @@ function renderDashboard() {
   });
 
   // ── Chart 6: Revenue or Tons by Remaining Contract Term ──
+  // Grouping: "Open" status = own column; no finalYear OR finalYear<=2025 = "EG"; else year
   const termMode = TOGGLES.term;
   document.getElementById('term-title').textContent =
     termMode === 'rev' ? 'Revenue by Remaining Contract Term' : 'Tons by Remaining Contract Term';
   const termMap = {};
   data.forEach(d => {
-    const label = d.finalYear ? String(d.finalYear) : 'Open / EG';
+    let label;
+    if (d.status === 'Open') {
+      label = 'Open';
+    } else if (!d.finalYear || Number(d.finalYear) <= 2025) {
+      label = 'EG';
+    } else {
+      label = String(d.finalYear);
+    }
     termMap[label] = (termMap[label]||0) + (termMode==='rev' ? d.revenue : d.tons);
   });
   const termLabels = Object.keys(termMap).sort((a, b) => {
-    if (a === 'Open / EG') return -1;
-    if (b === 'Open / EG') return 1;
+    if (a === 'Open') return -1;
+    if (b === 'Open') return 1;
+    if (a === 'EG')   return -1;
+    if (b === 'EG')   return 1;
     return parseInt(a) - parseInt(b);
   });
   mkChart('c-term-rev', {
@@ -1788,7 +1819,7 @@ function renderDashboard() {
       labels: termLabels,
       datasets: [{
         data: termLabels.map(l => termMode==='rev' ? termMap[l]/1e6 : termMap[l]),
-        backgroundColor: '#4a7c9e', borderRadius: 4,
+        backgroundColor: 'rgb(107,31,42)', borderRadius: 4,
       }]
     },
     options: {
