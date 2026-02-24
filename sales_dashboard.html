@@ -239,6 +239,21 @@ header {
 .kpi-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dust); margin-bottom: 8px; }
 .kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1; }
 .kpi-sub { font-size: 9px; color: var(--dust); margin-top: 5px; }
+.kpi-body {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 8px; margin-top: 6px;
+}
+.kpi-breakdown {
+  display: flex; flex-direction: column; gap: 2px;
+  text-align: right; flex-shrink: 0;
+}
+.kpi-bline {
+  font-size: 8px; color: var(--dust); white-space: nowrap;
+  font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
+}
+.kpi-bline .bline-label {
+  color: var(--dust); opacity: 0.7;
+}
 
 /* ── SECTION GRID ── */
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
@@ -402,7 +417,7 @@ header {
 .prog-name { font-size: 10px; color: var(--ink); }
 .prog-stat { font-size: 9px; color: var(--dust); }
 .prog-bg { height: 5px; background: var(--parchment); border-radius: 3px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--wine), var(--wine-light)); transition: width 0.5s ease; }
+.prog-fill { height: 100%; border-radius: 3px; background: #4a7c9e; transition: width 0.5s ease; }
 
 /* ── TABLE ── */
 .tbl-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
@@ -464,7 +479,7 @@ td.r { text-align: right; font-variant-numeric: tabular-nums; }
 .rev-stat { font-size: 9px; color: var(--dust); }
 .rev-bg { height: 5px; background: var(--parchment); border-radius: 3px; overflow: hidden; }
 .rev-fill { height: 100%; border-radius: 3px;
-  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  background: #4a7c9e;
   transition: width 0.5s ease; }
 
 /* ── FOOTER ── */
@@ -599,7 +614,6 @@ footer {
         <select id="f-customer" multiple><option value="__all__" selected>All Customers</option></select>
       </div>
 
-      <button class="reset-btn" id="reset-btn" style="margin-top:14px;">↺ Reset All Filters</button>
     </div>
   </aside>
 
@@ -610,28 +624,38 @@ footer {
     <div class="kpi-grid">
       <div class="kpi">
         <div class="kpi-lbl">Gross Revenue</div>
-        <div class="kpi-val" id="k-rev">—</div>
-        <div class="kpi-sub" id="k-rev-sub">—</div>
+        <div class="kpi-body">
+          <div class="kpi-val" id="k-rev">—</div>
+          <div class="kpi-breakdown" id="k-rev-breakdown"></div>
+        </div>
       </div>
       <div class="kpi k-sage">
         <div class="kpi-lbl">Total Tonnage</div>
-        <div class="kpi-val" id="k-tons">—</div>
-        <div class="kpi-sub" id="k-tons-sub">—</div>
+        <div class="kpi-body">
+          <div class="kpi-val" id="k-tons">—</div>
+          <div class="kpi-breakdown" id="k-tons-breakdown"></div>
+        </div>
       </div>
       <div class="kpi k-dust">
         <div class="kpi-lbl">Total Acres</div>
-        <div class="kpi-val" id="k-acres">—</div>
-        <div class="kpi-sub" id="k-acres-sub">—</div>
+        <div class="kpi-body">
+          <div class="kpi-val" id="k-acres">—</div>
+          <div class="kpi-breakdown" id="k-acres-breakdown"></div>
+        </div>
       </div>
       <div class="kpi k-gold">
         <div class="kpi-lbl">Wtd. Avg $/Ton</div>
-        <div class="kpi-val" id="k-ppt">—</div>
-        <div class="kpi-sub" id="k-ppt-sub">—</div>
+        <div class="kpi-body">
+          <div class="kpi-val" id="k-ppt">—</div>
+          <div class="kpi-breakdown" id="k-ppt-breakdown"></div>
+        </div>
       </div>
       <div class="kpi k-wine2">
         <div class="kpi-lbl">Wtd. Avg Tons/Acre</div>
-        <div class="kpi-val" id="k-tpa">—</div>
-        <div class="kpi-sub" id="k-tpa-sub">—</div>
+        <div class="kpi-body">
+          <div class="kpi-val" id="k-tpa">—</div>
+          <div class="kpi-breakdown" id="k-tpa-breakdown"></div>
+        </div>
       </div>
     </div>
 
@@ -646,6 +670,7 @@ footer {
             <div class="toggle-wrap">
               <button class="tog active" id="tog-ava-rev"  onclick="setToggle('ava','rev')">Revenue</button>
               <button class="tog"        id="tog-ava-tons" onclick="setToggle('ava','tons')">Tons</button>
+              <button class="tog"        id="tog-ava-pct"  onclick="setToggle('ava','pct')">% of Total</button>
             </div>
           </div>
           <div class="card-body">
@@ -675,7 +700,7 @@ footer {
           <div class="card-head">
             <span class="drag-handle" title="Drag to reorder">⠿</span>
             <div class="card-title">% Sold by Vineyard</div>
-            <div class="card-badge">Sorted Most → Least</div>
+
           </div>
           <div class="card-body">
             <div class="prog-list" id="prog-vineyard"></div>
@@ -691,6 +716,8 @@ footer {
             <div class="toggle-wrap">
               <button class="tog active" id="tog-ppt-ppt"  onclick="setToggle('ppt','ppt')">$/Ton</button>
               <button class="tog"        id="tog-ppt-acre" onclick="setToggle('ppt','acre')">$/Acre</button>
+              <button class="tog active" id="tog-pptsort-abs" onclick="setToggle('pptSort','abs')">Ranked</button>
+              <button class="tog"        id="tog-pptsort-ava" onclick="setToggle('pptSort','ava')">By AVA</button>
             </div>
           </div>
           <div class="card-body" style="display:flex;flex-direction:column;gap:0;">
@@ -935,7 +962,7 @@ function detectColumns(headerRow) {
   COL.revenue    = findCol(map, ['revenue','$ revenue','gross revenue']);
   COL.acres      = findCol(map, ['reference acres','ref acres','ref. acres','reference_acres','referenceacres','acres ref','available acres','total acres','acreage','acres']);
   COL.tpa        = findCol(map, ['tons/acre','t/a','tpa','yield','tons per acre']);
-  COL.ava        = findCol(map, ['ava','reporting region','region','appellation']);
+  COL.ava        = findCol(map, ['dashboard ava','dashboardava','dash ava','ava','reporting region','region','appellation']);
   COL.state      = findCol(map, ['state']);
   COL.county     = findCol(map, ['county']);
   COL.finalYear  = findCol(map, ['final year','last year','end year','term end','finalyear']);
@@ -1225,7 +1252,7 @@ function mkChart(id, cfg) {
 
 const FONT = 'DM Mono';
 const TICK_STYLE = { font: { family: FONT, size: 9 }, color: '#7e7060' };
-const GRID_STYLE = { color: 'rgba(0,0,0,0.04)' };
+const GRID_STYLE = { color: 'rgba(0,0,0,0.12)' };
 
 function fmtM(n)  { return '$' + (n/1e6).toFixed(1) + 'M'; }
 function fmtK(n)  { if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K'; return '$'+Math.round(n); }
@@ -1235,12 +1262,13 @@ function fmtN(n)  { return Math.round(n).toLocaleString(); }
 // TOGGLE STATE
 // ═══════════════════════════════════════════════════════════
 const TOGGLES = {
-  donut: 'tons',   // tons | acres
-  ava:   'rev',    // rev  | tons
-  ppt:   'ppt',    // ppt  | acre
-  var:   'rev',    // rev  | tons
-  term:  'rev',    // rev  | tons
-  cust:  'rev',    // rev  | tons
+  donut:   'tons',   // tons | acres
+  ava:     'rev',    // rev  | tons | pct
+  ppt:     'ppt',    // ppt  | acre
+  pptSort: 'abs',    // abs (greatest→least) | ava (grouped by AVA)
+  var:     'rev',    // rev  | tons
+  term:    'rev',    // rev  | tons
+  cust:    'rev',    // rev  | tons
 };
 
 function setToggle(chart, val) {
@@ -1457,49 +1485,90 @@ function renderDashboard() {
   const totalRev   = data.reduce((s,d) => s + d.revenue, 0);
   const totalTons  = data.reduce((s,d) => s + d.tons, 0);
   const totalAcres = data.reduce((s,d) => s + d.acres, 0);
-  const wtdPPT     = totalTons > 0 ? totalRev / totalTons : 0;
+  const wtdPPT     = totalTons  > 0 ? totalRev  / totalTons  : 0;
   const wtdTPA     = totalAcres > 0 ? totalTons / totalAcres : 0;
 
-  const soldRev   = data.filter(d=>d.status==='Sold').reduce((s,d)=>s+d.revenue,0);
-  const soldTons  = data.filter(d=>d.status==='Sold').reduce((s,d)=>s+d.tons,0);
-  const openTons  = data.filter(d=>d.status==='Open').reduce((s,d)=>s+d.tons,0);
-  const ccTons    = data.filter(d=>d.status==='Custom Crush').reduce((s,d)=>s+d.tons,0);
-  const pendTons  = data.filter(d=>d.status==='Pending').reduce((s,d)=>s+d.tons,0);
+  // Per-status aggregates for breakdowns
+  const KPI_STATUSES = ['Sold','Pending','Custom Crush','Open'];
+  const byStatus = {};
+  KPI_STATUSES.forEach(st => {
+    const rows = data.filter(d => d.status === st);
+    byStatus[st] = {
+      rev:   rows.reduce((s,d) => s + d.revenue, 0),
+      tons:  rows.reduce((s,d) => s + d.tons,    0),
+      acres: rows.reduce((s,d) => s + d.acres,   0),
+    };
+    byStatus[st].ppt = byStatus[st].tons  > 0 ? byStatus[st].rev  / byStatus[st].tons  : 0;
+    byStatus[st].tpa = byStatus[st].acres > 0 ? byStatus[st].tons / byStatus[st].acres : 0;
+  });
 
-  document.getElementById('k-rev').textContent     = fmtM(totalRev);
-  document.getElementById('k-rev-sub').textContent = `Sold: ${fmtM(soldRev)}`;
-  document.getElementById('k-ppt').textContent     = '$' + fmtN(wtdPPT);
-  document.getElementById('k-ppt-sub').textContent = `${data.length} records`;
-  document.getElementById('k-tons').textContent    = fmtN(totalTons);
-  document.getElementById('k-tons-sub').textContent= `Sold ${fmtN(soldTons)} · Open ${fmtN(openTons)}`;
-  document.getElementById('k-acres').textContent   = fmtN(totalAcres);
-  document.getElementById('k-acres-sub').textContent = `Filtered acres`;
-  document.getElementById('k-tpa').textContent     = wtdTPA.toFixed(2);
-  document.getElementById('k-tpa-sub').textContent = `Tons per acre`;
-  // (filter-count display removed)
+  function blineHTML(rows) {
+    return rows.map(([lbl, val]) =>
+      `<div class="kpi-bline"><span class="bline-label">${lbl}</span> ${val}</div>`
+    ).join('');
+  }
 
-  // ── Chart 1: Revenue/Tons by AVA or Vineyard ──
+  document.getElementById('k-rev').textContent   = fmtM(totalRev);
+  document.getElementById('k-rev-breakdown').innerHTML = blineHTML(
+    KPI_STATUSES.map(st => [st, fmtM(byStatus[st].rev)])
+  );
+
+  document.getElementById('k-tons').textContent  = fmtN(totalTons);
+  document.getElementById('k-tons-breakdown').innerHTML = blineHTML(
+    KPI_STATUSES.map(st => [st, fmtN(byStatus[st].tons) + ' T'])
+  );
+
+  document.getElementById('k-acres').textContent = fmtN(totalAcres);
+  document.getElementById('k-acres-breakdown').innerHTML = blineHTML(
+    KPI_STATUSES.map(st => [st, fmtN(byStatus[st].acres) + ' ac'])
+  );
+
+  document.getElementById('k-ppt').textContent   = '$' + fmtN(wtdPPT);
+  document.getElementById('k-ppt-breakdown').innerHTML = blineHTML(
+    KPI_STATUSES.map(st => [st, byStatus[st].ppt > 0 ? '$' + fmtN(byStatus[st].ppt) : '—'])
+  );
+
+  document.getElementById('k-tpa').textContent   = wtdTPA.toFixed(2);
+  document.getElementById('k-tpa-breakdown').innerHTML = blineHTML(
+    KPI_STATUSES.map(st => [st, byStatus[st].tpa > 0 ? byStatus[st].tpa.toFixed(2) : '—'])
+  );
+
+  // ── Chart 1: Revenue/Tons/% by AVA or Vineyard ──
   const avasInData = [...new Set(data.map(d=>d.ava))].filter(Boolean);
   const singleAva  = avasInData.length === 1;
   const groupField = singleAva ? 'vineyard' : 'ava';
   const groupLabels = singleAva
     ? [...new Set(data.map(d=>d.vineyard))].sort()
     : avasInData.sort();
-  const avaMode = TOGGLES.ava; // 'rev' or 'tons'
+  const avaMode = TOGGLES.ava; // 'rev' | 'tons' | 'pct'
   const statuses = ['Sold','Open','Custom Crush','Pending'];
+
+  // For pct mode: per-group total tons for normalisation
+  const groupTotals = {};
+  if (avaMode === 'pct') {
+    groupLabels.forEach(g => {
+      groupTotals[g] = data.filter(d=>d[groupField]===g).reduce((s,d)=>s+d.tons,0);
+    });
+  }
+
   const avaDatasets = statuses.map(st => ({
     label: st,
-    data: groupLabels.map(g =>
-      data.filter(d=>d[groupField]===g&&d.status===st)
-          .reduce((s,d) => s + (avaMode==='rev' ? d.revenue : d.tons), 0)
-          / (avaMode==='rev' ? 1e6 : 1)
-    ),
+    data: groupLabels.map(g => {
+      const raw = data.filter(d=>d[groupField]===g&&d.status===st)
+                     .reduce((s,d) => s + (avaMode==='rev' ? d.revenue : d.tons), 0);
+      if (avaMode === 'rev')  return raw / 1e6;
+      if (avaMode === 'pct')  return groupTotals[g] > 0 ? (raw / groupTotals[g]) * 100 : 0;
+      return raw; // tons
+    }),
     backgroundColor: STATUS_COLORS[st] || '#aaa',
     borderRadius: 2,
   }));
+
   const avaBase = singleAva ? `by Vineyard (${avasInData[0]})` : 'by AVA';
   document.getElementById('ava-rev-title').textContent =
-    (avaMode==='rev' ? 'Revenue ' : 'Tons ') + avaBase;
+    avaMode === 'rev' ? 'Revenue ' + avaBase :
+    avaMode === 'pct' ? '% by Status ' + avaBase :
+    'Tons ' + avaBase;
 
   mkChart('c-ava-rev', {
     type: 'bar',
@@ -1509,9 +1578,15 @@ function renderDashboard() {
       plugins: { legend: { labels: { font:{family:FONT,size:9}, color:'#1c1712', boxWidth:10 } } },
       scales: {
         x: { stacked:true, ticks:{...TICK_STYLE,maxRotation:35}, grid:{display:false} },
-        y: { stacked:true, ticks:{...TICK_STYLE,
-          callback: v => avaMode==='rev' ? '$'+v.toFixed(0)+'M' : fmtN(v)+'T'
-        }, grid:GRID_STYLE }
+        y: {
+          stacked: true,
+          max: avaMode === 'pct' ? 100 : undefined,
+          ticks:{...TICK_STYLE,
+            callback: v => avaMode==='rev' ? '$'+v.toFixed(0)+'M'
+                         : avaMode==='pct' ? v.toFixed(0)+'%'
+                         : fmtN(v)+'T'
+          }, grid:GRID_STYLE
+        }
       }
     }
   });
@@ -1579,6 +1654,7 @@ function renderDashboard() {
     acc[d.vineyard].acres += d.acres;
     return acc;
   }, {});
+  const pptSortMode = TOGGLES.pptSort; // 'abs' | 'ava'
   const vinPPT = Object.entries(vinAgg)
     .map(([name,v]) => ({
       name,
@@ -1587,7 +1663,13 @@ function renderDashboard() {
       ava: v.ava
     }))
     .filter(v => v.val > 0)
-    .sort((a,b) => b.val - a.val);
+    .sort((a,b) => {
+      if (pptSortMode === 'ava') {
+        const avaCmp = a.ava.localeCompare(b.ava);
+        return avaCmp !== 0 ? avaCmp : b.val - a.val; // within AVA: highest first
+      }
+      return b.val - a.val; // absolute: highest first
+    });
 
 
   mkChart('c-ppt-vineyard', {
@@ -1636,35 +1718,52 @@ function renderDashboard() {
     }).join('');
   })();
 
-  // ── Chart 5: Revenue or Tons by Varietal (top 12) ──
+  // ── Chart 5: Revenue or Tons by Varietal (top 12), stacked by Status ──
   const varMode = TOGGLES.var;
   document.getElementById('var-title').textContent =
     varMode === 'rev' ? 'Revenue by Varietal' : 'Tons by Varietal';
-  const varData = Object.entries(
-    data.reduce((acc,d) => {
-      acc[d.varietal] = (acc[d.varietal]||0) + (varMode==='rev' ? d.revenue : d.tons);
-      return acc;
-    }, {})
-  ).sort((a,b)=>b[1]-a[1]).slice(0,12);
+
+  // Aggregate per varietal×status
+  const varStatusAgg = {};
+  data.forEach(d => {
+    if (!varStatusAgg[d.varietal]) varStatusAgg[d.varietal] = {};
+    varStatusAgg[d.varietal][d.status] =
+      (varStatusAgg[d.varietal][d.status] || 0) + (varMode==='rev' ? d.revenue : d.tons);
+  });
+  // Rank varietals by total, take top 12
+  const varTotals = Object.entries(varStatusAgg)
+    .map(([v, ss]) => [v, Object.values(ss).reduce((a,b)=>a+b,0)])
+    .sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const varLabels = varTotals.map(v=>v[0]);
+  const varStatuses = ['Sold','Open','Custom Crush','Pending','Mothball','FFC'];
+  const varDatasets = varStatuses
+    .filter(st => data.some(d=>d.status===st))
+    .map(st => ({
+      label: st,
+      data: varLabels.map(varietal =>
+        ((varStatusAgg[varietal]||{})[st]||0) / (varMode==='rev' ? 1e6 : 1)
+      ),
+      backgroundColor: STATUS_COLORS[st] || '#7e7060',
+      borderRadius: 2,
+    }));
   mkChart('c-var-rev', {
     type:'bar',
-    data:{
-      labels: varData.map(v=>v[0]),
-      datasets:[{
-        data: varData.map(v => varMode==='rev' ? v[1]/1e6 : v[1]),
-        backgroundColor:'#6b1f2a99', borderRadius:3
-      }]
-    },
+    data:{ labels: varLabels, datasets: varDatasets },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{
-        label: ctx => varMode==='rev' ? ` $${ctx.raw.toFixed(1)}M` : ` ${fmtN(ctx.raw)} T`
-      }}},
+      plugins:{
+        legend:{ labels:{ font:{family:FONT,size:9}, color:'#1c1712', boxWidth:10 } },
+        tooltip:{ callbacks:{
+          label: ctx => varMode==='rev'
+            ? ` ${ctx.dataset.label}: $${ctx.raw.toFixed(1)}M`
+            : ` ${ctx.dataset.label}: ${fmtN(ctx.raw)} T`
+        }}
+      },
       scales:{
-        x:{ticks:{...TICK_STYLE,maxRotation:38},grid:{display:false}},
-        y:{ticks:{...TICK_STYLE,
+        x:{ stacked:true, ticks:{...TICK_STYLE,maxRotation:38}, grid:{display:false} },
+        y:{ stacked:true, ticks:{...TICK_STYLE,
           callback: v => varMode==='rev' ? '$'+v+'M' : fmtN(v)
-        },grid:GRID_STYLE}
+        }, grid:GRID_STYLE }
       }
     }
   });
@@ -1689,7 +1788,7 @@ function renderDashboard() {
       labels: termLabels,
       datasets: [{
         data: termLabels.map(l => termMode==='rev' ? termMap[l]/1e6 : termMap[l]),
-        backgroundColor: '#6b1f2acc', borderRadius: 4,
+        backgroundColor: '#4a7c9e', borderRadius: 4,
       }]
     },
     options: {
@@ -1823,7 +1922,6 @@ function doReset() {
   buildFilters();
   renderDashboard();
 }
-document.getElementById('reset-btn').addEventListener('click', doReset);
 document.getElementById('reset-btn-top').addEventListener('click', doReset);
 
 // ═══════════════════════════════════════════════════════════
