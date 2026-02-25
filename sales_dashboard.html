@@ -1457,8 +1457,8 @@ function getSidebarFixedAbove() {
   if (_sidebarFixedAbove !== null) return _sidebarFixedAbove;
   const sidebar       = document.getElementById('sidebar');
   const sidebarHead   = sidebar?.querySelector('.sidebar-head');
-  const filtersHead   = document.querySelector('[onclick="toggleSection('filters')"]');
-  const chartsHead    = document.querySelector('[onclick="toggleSection('charts')"]');
+  const filtersHead   = document.getElementById('section-filters')?.previousElementSibling;
+  const chartsHead    = document.getElementById('section-charts')?.previousElementSibling;
   const chartsSection = document.getElementById('section-charts');
   let h = SIDEBAR_PAD_TOP;
   if (sidebarHead)   h += sidebarHead.offsetHeight + 16; // + margin-bottom
