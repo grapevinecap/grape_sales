@@ -237,8 +237,8 @@ header {
 .kpi.k-sage { border-top-color: var(--sage); }
 .kpi.k-dust { border-top-color: var(--dust); }
 .kpi.k-wine2 { border-top-color: var(--wine-muted); }
-.kpi-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dust); margin-bottom: 4px; flex-shrink: 0; }
-.kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--ink); line-height: 1; }
+.kpi-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dust); margin-bottom: 4px; flex-shrink: 0; transition: font-size 0.1s; }
+.kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--ink); line-height: 1.05; }
 .kpi-sub { font-size: 9px; color: var(--dust); margin-top: 5px; }
 .kpi-body {
   display: flex; align-items: stretch;
@@ -260,9 +260,9 @@ header {
 .kpi-bline {
   color: var(--dust); white-space: nowrap;
   font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
-  /* font-size set by JS based on widget height */
-  font-size: 7.5px;
+  font-size: 7.5px; /* overridden by JS scaleKpiText() */
   flex: 1; display: flex; align-items: center; justify-content: flex-end;
+  transition: font-size 0.15s;
 }
 .kpi-bline .bline-label {
   color: var(--dust); opacity: 0.7; margin-right: 3px;
@@ -476,6 +476,11 @@ td.r { text-align: right; font-variant-numeric: tabular-nums; }
   background: var(--wine); color: var(--cream); border-color: var(--wine);
 }
 .tog:hover:not(.active) { border-color: var(--wine-muted); color: var(--wine); }
+/* Vertical separator between toggle button groups */
+.tog-sep {
+  width: 1px; background: var(--border);
+  align-self: stretch; margin: 2px 3px; flex-shrink: 0;
+}
 
 /* ── STANDARD CHART HEIGHT (all charts use this) ── */
 .chart-std { position: relative; height: 240px; }
@@ -534,8 +539,20 @@ footer {
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">Customize</div>
 
+    <!-- Collapsible: Widgets (collapsed by default) -->
+    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('widgets')" style="border-top:none;padding-top:0;margin-top:0;">
+      <span>Widgets</span><span class="collapse-arrow" id="arrow-widgets">▲</span>
+    </div>
+    <div class="collapsible-body" id="section-widgets">
+      <button class="vis-btn" id="vis-kpi-rev"   onclick="toggleWidget('rev')">  <span class="vis-dot"></span>Gross Revenue</button>
+      <button class="vis-btn" id="vis-kpi-tons"  onclick="toggleWidget('tons')"> <span class="vis-dot"></span>Total Tonnage</button>
+      <button class="vis-btn" id="vis-kpi-acres" onclick="toggleWidget('acres')"><span class="vis-dot"></span>Total Acres</button>
+      <button class="vis-btn" id="vis-kpi-ppt"   onclick="toggleWidget('ppt')">  <span class="vis-dot"></span>Wtd. Avg $/Ton</button>
+      <button class="vis-btn" id="vis-kpi-tpa"   onclick="toggleWidget('tpa')">  <span class="vis-dot"></span>Wtd. Avg Tons/Acre</button>
+    </div>
+
     <!-- Collapsible: Charts (collapsed by default) -->
-    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('charts')" style="border-top:none;padding-top:0;margin-top:0;">
+    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('charts')">
       <span>Charts</span><span class="collapse-arrow" id="arrow-charts">▲</span>
     </div>
     <div class="collapsible-body" id="section-charts">
@@ -683,6 +700,7 @@ footer {
             <div class="toggle-wrap">
               <button class="tog active" id="tog-ava-rev"  onclick="setToggle('ava','rev')">Revenue</button>
               <button class="tog"        id="tog-ava-tons" onclick="setToggle('ava','tons')">Tons</button>
+              <div class="tog-sep"></div>
               <button class="tog"        id="tog-ava-pct"  onclick="setToggle('avaPct')">% of Total</button>
             </div>
           </div>
@@ -729,6 +747,7 @@ footer {
             <div class="toggle-wrap">
               <button class="tog active" id="tog-ppt-ppt"  onclick="setToggle('ppt','ppt')">$/Ton</button>
               <button class="tog"        id="tog-ppt-acre" onclick="setToggle('ppt','acre')">$/Acre</button>
+              <div class="tog-sep"></div>
               <button class="tog active" id="tog-pptSort-abs" onclick="setToggle('pptSort','abs')">Ranked</button>
               <button class="tog"        id="tog-pptSort-ava" onclick="setToggle('pptSort','ava')">By AVA</button>
             </div>
@@ -1297,6 +1316,10 @@ function setToggle(chart, val) {
   document.querySelectorAll(`[id^="tog-${chart}-"]`).forEach(btn => {
     btn.classList.toggle('active', btn.id === `tog-${chart}-${val}`);
   });
+  // If switching ava metric, do NOT touch tog-ava-pct (separate dimension)
+  if (chart === 'ava') {
+    document.getElementById('tog-ava-pct')?.classList.toggle('active', TOGGLES.avaPct);
+  }
   renderDashboard();
 }
 
@@ -1305,6 +1328,32 @@ const CHART_VISIBLE = {
   ava: true, donut: true, prog: true, ppt: true,
   var: true, term: true, cust: true
 };
+
+// ── WIDGET VISIBILITY ─────────────────────────────────────
+const KPI_IDS = ['rev','tons','acres','ppt','tpa'];
+const KPI_VISIBLE = { rev: true, tons: true, acres: true, ppt: true, tpa: true };
+
+function toggleWidget(id) {
+  KPI_VISIBLE[id] = !KPI_VISIBLE[id];
+  const btn = document.getElementById('vis-kpi-' + id);
+  if (btn) btn.classList.toggle('hidden-chart', !KPI_VISIBLE[id]);
+  updateKpiGrid();
+}
+
+function updateKpiGrid() {
+  const grid = document.querySelector('.kpi-grid');
+  if (!grid) return;
+  const visibleCount = KPI_IDS.filter(id => KPI_VISIBLE[id]).length;
+  grid.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+  KPI_IDS.forEach(id => {
+    // Find kpi by its val element id
+    const valEl = document.getElementById('k-' + id);
+    const kpiEl = valEl?.closest('.kpi');
+    if (kpiEl) kpiEl.style.display = KPI_VISIBLE[id] ? '' : 'none';
+  });
+  // Rescale text after layout changes
+  setTimeout(scaleKpiText, 50);
+}
 
 function toggleChart(id) {
   CHART_VISIBLE[id] = !CHART_VISIBLE[id];
@@ -1318,7 +1367,7 @@ function toggleChart(id) {
 
 // ── COLLAPSIBLE TOP SECTIONS ─────────────────────────────
 // Opening one section collapses the other to prevent overflow.
-const TOP_SECTIONS = ['charts', 'filters'];
+const TOP_SECTIONS = ['widgets', 'charts', 'filters'];
 
 function toggleSection(id) {
   const body  = document.getElementById('section-' + id);
@@ -1392,39 +1441,58 @@ function toggleSubFilter(name) {
 }
 
 // Size a <select> to fill all available sidebar space below it.
-// Keyed off the sf-head (stable in DOM) rather than the sf-body (mid-animation).
+// Anchors off the sidebar top + known pixel heights of fixed elements
+// to avoid any dependency on mid-transition getBoundingClientRect.
 const SF_ORDER    = ['owner','status','state','county','ava','vineyard','varietal','customer'];
-const SF_HEAD_H   = 31;   // px: each collapsed sf-head row height
-const RESET_BTN_H = 52;   // px: reset button + margin-top
-const SIDEBAR_PAD = 20;   // px: sidebar bottom padding
+const SF_HEAD_H   = 31;   // px: each sf-head row height (collapsed)
+const RESET_BTN_H = 52;   // px: top reset button + its margin-top
+const SIDEBAR_PAD_TOP = 20; // px: sidebar top padding
+const SIDEBAR_PAD_BOT = 20; // px: sidebar bottom padding
+// Heights of fixed sidebar elements above the filters section:
+// sidebar-head (~46px) + Charts section-head (~42px) + Filters section-head (~42px)
+// These are measured once after load and cached.
+let _sidebarFixedAbove = null;
+
+function getSidebarFixedAbove() {
+  if (_sidebarFixedAbove !== null) return _sidebarFixedAbove;
+  const sidebar       = document.getElementById('sidebar');
+  const sidebarHead   = sidebar?.querySelector('.sidebar-head');
+  const filtersHead   = document.querySelector('[onclick="toggleSection('filters')"]');
+  const chartsHead    = document.querySelector('[onclick="toggleSection('charts')"]');
+  const chartsSection = document.getElementById('section-charts');
+  let h = SIDEBAR_PAD_TOP;
+  if (sidebarHead)   h += sidebarHead.offsetHeight + 16; // + margin-bottom
+  if (chartsHead)    h += chartsHead.offsetHeight;
+  if (chartsSection?.classList.contains('open')) h += chartsSection.scrollHeight;
+  if (filtersHead)   h += filtersHead.offsetHeight;
+  // top reset button (always visible when filters section open)
+  h += RESET_BTN_H;
+  return h; // don't cache — charts section height changes
+}
 
 function resizeSelect(name) {
-  const sel  = document.getElementById('f-' + name);
-  const head = document.querySelector(`[onclick="toggleSubFilter('${name}')"]`);
-  if (!sel || !head) return;
+  const sel = document.getElementById('f-' + name);
+  if (!sel) return;
 
   const optionCount = sel.options.length;
   const ROW_H  = 22;
   const idealH = optionCount * ROW_H + 6;
 
-  // Heads that sit BELOW this one in the list (all collapsed)
+  // Count sf-heads ABOVE and AT this filter (all are always rendered at SF_HEAD_H)
   const myIdx      = SF_ORDER.indexOf(name);
+  const headsAbove = myIdx >= 0 ? myIdx + 1 : SF_ORDER.length; // +1 includes own head
+
+  // Heads BELOW (all collapsed after this one closes)
   const headsBelow = myIdx >= 0 ? SF_ORDER.length - 1 - myIdx : 0;
 
-  // Sidebar's visible bottom edge (accounts for sticky + fixed height)
-  const sidebar    = document.getElementById('sidebar');
-  const sidebarBot = sidebar
-    ? sidebar.getBoundingClientRect().top + sidebar.clientHeight
-    : window.innerHeight - 10;
+  const sidebar     = document.getElementById('sidebar');
+  const sidebarH    = sidebar ? sidebar.clientHeight : 600;
+  const fixedAbove  = getSidebarFixedAbove();
 
-  // Select starts just below the sf-head bottom edge
-  const headRect  = head.getBoundingClientRect();
-  const selectTop = headRect.bottom; // sf-body top ≈ head bottom once open
-
-  // Space available: from select top down to sidebar bottom,
-  // minus space reserved for collapsed headers below + reset btn + padding
-  const reservedBelow = headsBelow * SF_HEAD_H + RESET_BTN_H + SIDEBAR_PAD;
-  const available = Math.max(60, sidebarBot - selectTop - reservedBelow);
+  // Total space in sidebar minus: fixed elements above + heads above + heads below + pad
+  const usedAbove   = fixedAbove + headsAbove * SF_HEAD_H;
+  const usedBelow   = headsBelow * SF_HEAD_H + SIDEBAR_PAD_BOT;
+  const available   = Math.max(60, sidebarH - usedAbove - usedBelow);
 
   sel.style.height = Math.min(idealH, available) + 'px';
 }
@@ -1497,6 +1565,31 @@ function initDragDrop() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// KPI TEXT SCALING
+// ═══════════════════════════════════════════════════════════
+function scaleKpiText() {
+  const kpis = document.querySelectorAll('.kpi');
+  kpis.forEach(kpi => {
+    const body = kpi.querySelector('.kpi-body');
+    if (!body) return;
+    const bodyH = body.offsetHeight;
+    if (bodyH < 10) return;
+    // 4 blines fill the body height with ~10% padding each side
+    const N_LINES = 4;
+    const lineH   = bodyH / N_LINES;
+    // font roughly 0.6× line height to give breathing room
+    const fs      = Math.max(7, Math.min(13, lineH * 0.58));
+    kpi.querySelectorAll('.kpi-bline').forEach(el => {
+      el.style.fontSize = fs.toFixed(1) + 'px';
+    });
+    // Label scales too: same ratio as bline vs 7.5px baseline
+    const lblFs = Math.max(7, Math.min(9, 8 * (fs / 9)));
+    const lbl = kpi.querySelector('.kpi-lbl');
+    if (lbl) lbl.style.fontSize = lblFs.toFixed(1) + 'px';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // DASHBOARD RENDER
 // ═══════════════════════════════════════════════════════════
 function renderDashboard() {
@@ -1553,6 +1646,9 @@ function renderDashboard() {
   document.getElementById('k-tpa-breakdown').innerHTML = blineHTML(
     KPI_STATUSES.map(st => [st, byStatus[st].tpa > 0 ? byStatus[st].tpa.toFixed(2) : '—'])
   );
+
+  // Scale KPI text to fill widget height
+  setTimeout(scaleKpiText, 20);
 
   // ── Chart 1: Revenue/Tons/% by AVA or Vineyard ──
   const avasInData = [...new Set(data.map(d=>d.ava))].filter(Boolean);
@@ -1950,6 +2046,14 @@ function doReset() {
   });
   sortCol = null; sortDir = 1;
   document.querySelectorAll('#tbl-head th').forEach(t => t.classList.remove('asc','desc'));
+  // Collapse all open sub-filters
+  SF_ORDER.forEach(name => {
+    const body  = document.getElementById('sf-body-' + name);
+    const arrow = document.getElementById('sf-arrow-' + name);
+    if (body)  body.classList.remove('open');
+    if (arrow) arrow.classList.remove('open');
+  });
+  openSubFilter = null;
   buildFilters();
   renderDashboard();
 }
@@ -1972,6 +2076,7 @@ async function loadData() {
     setProgress(90, 'Building dashboard…');
     buildFilters();
     renderDashboard();
+    updateKpiGrid();
     initDragDrop();
 
     const now = new Date();
