@@ -2099,6 +2099,19 @@ async function refreshData() {
   await loadData();
 }
 
+// Catch any uncaught errors and show them on the loading screen
+window.onerror = function(msg, src, line, col, err) {
+  const el = document.getElementById('load-error');
+  if (el) { el.style.display = 'block'; el.textContent = 'JS Error: ' + msg + ' (line ' + line + ')'; }
+  const st = document.getElementById('load-status');
+  if (st) st.textContent = 'Script error - see message below';
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  const el = document.getElementById('load-error');
+  if (el) { el.style.display = 'block'; el.textContent = 'Async Error: ' + (e.reason?.message || e.reason); }
+});
+
 // Start
 loadData();
 </script>
