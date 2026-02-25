@@ -254,22 +254,25 @@ header {
 .kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; color: var(--ink); line-height: 1; transition: font-size 0.15s; }
 .kpi-sub { font-size: 9px; color: var(--dust); margin-top: 5px; }
 .kpi-body {
-  display: flex; align-items: stretch;
-  justify-content: space-between; gap: 8px;
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 6px;
   flex: 1; min-height: 0;
 }
-/* left side: big value sits at top, grows to push breakdown down */
+/* Left: big number — fixed basis so it never crowds the breakdown */
 .kpi-body > .kpi-val {
   align-self: flex-start;
-  margin-top: 2px;
+  flex: 0 1 auto;   /* don't grow; can shrink if needed */
   min-width: 0;
-  flex-shrink: 1;
+  max-width: 52%;   /* never take more than half the row */
+  line-height: 1.05;
 }
 .kpi-breakdown {
   display: flex; flex-direction: column;
-  justify-content: space-between;   /* evenly spread lines to fill height */
-  text-align: right; flex-shrink: 1;
-  flex: 1;                          /* take remaining vertical space */
+  justify-content: space-between;
+  align-items: flex-end;           /* right-align within the column */
+  text-align: right;
+  flex: 1 1 0;                     /* grow to fill, start from 0 basis */
+  align-self: stretch;             /* fill full height of kpi-body */
   min-width: 0; overflow: hidden;
   gap: 0;
 }
@@ -280,6 +283,7 @@ header {
   flex: 1; display: flex; align-items: center; justify-content: flex-end;
   transition: font-size 0.15s;
   min-width: 0; overflow: hidden;
+  width: 100%;   /* fill the breakdown column fully */
 }
 .kpi-bline .bline-label {
   color: var(--dust); opacity: 0.7; margin-right: 3px;
@@ -1613,12 +1617,13 @@ function scaleKpiText() {
     // 4 blines share available height; 85% fill factor for visual breathing room
     const lineH = (avail / 4) * 0.85;
 
-    // Also constrain by cell width so text never overflows.
-    // Approximate cell inner width: (window.innerWidth - 252 sidebar - 56 padding) / 5 - 32 kpi-padding
-    const cellW   = Math.max(120, (window.innerWidth - 252 - 56) / 5 - 32);
-    // Longest bline text is ~20 chars ("Custom Crush $45.2M"); DM Mono char width ≈ 0.60× font-size
-    const maxByW  = cellW / (20 * 0.60);
-    const fs      = Math.max(9, Math.min(13, lineH, maxByW));
+    // Constrain by the actual breakdown column width.
+    // breakdown ≈ 48% of inner cell width; cell ≈ (viewport - 252 sidebar - 56 padding)/5 - 32 cell-pad
+    const cellW      = Math.max(100, (window.innerWidth - 252 - 56) / 5 - 32);
+    const breakdownW = Math.max(60, cellW * 0.48 - 6);
+    // Longest label+value: "Custom Crush $45.2M" ≈ 19 chars; DM Mono char width ≈ 0.58× font-size
+    const maxByW     = breakdownW / (19 * 0.58);
+    const fs         = Math.max(9, Math.min(13, lineH, maxByW));
 
     blines.forEach(el => { el.style.fontSize = fs.toFixed(1) + 'px'; });
 
