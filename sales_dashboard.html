@@ -167,10 +167,13 @@ header {
   max-height: 0;
   opacity: 0;
   transition: max-height 0.25s ease, opacity 0.2s ease;
+  flex-shrink: 0; /* collapsed: takes no space */
 }
 .sf-body.open {
-  max-height: 2000px; /* JS resizeSelect controls select height */
+  max-height: 2000px; /* JS sets actual height on the <select> directly */
   opacity: 1;
+  overflow: hidden;   /* clip to select height, never let it push siblings */
+  flex-shrink: 0;     /* don't compress — select height is already computed */
 }
 .sf-body select[multiple] {
   width: 100%; background: var(--cream);
@@ -223,6 +226,7 @@ header {
 /* ── KPI ROW ── */
 .kpi-grid {
   display: grid; grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 130px;
   gap: 12px; margin-bottom: 22px;
 }
 .kpi {
@@ -231,6 +235,7 @@ header {
   padding: 14px 16px; box-shadow: var(--shadow-sm);
   transition: transform 0.15s, box-shadow 0.15s;
   display: flex; flex-direction: column;
+  min-height: 130px;
 }
 .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .kpi.k-gold { border-top-color: var(--gold); }
@@ -238,7 +243,7 @@ header {
 .kpi.k-dust { border-top-color: var(--dust); }
 .kpi.k-wine2 { border-top-color: var(--wine-muted); }
 .kpi-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dust); margin-bottom: 4px; flex-shrink: 0; transition: font-size 0.1s; }
-.kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: var(--ink); line-height: 1.05; }
+.kpi-val { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 500; color: var(--ink); line-height: 1; transition: font-size 0.15s; }
 .kpi-sub { font-size: 9px; color: var(--dust); margin-top: 5px; }
 .kpi-body {
   display: flex; align-items: stretch;
@@ -351,6 +356,13 @@ header {
   flex-shrink: 0;
   transition: max-height 0.3s ease, opacity 0.2s ease;
 }
+/* Widgets section: fixed cap (5 buttons) */
+#section-widgets.open {
+  max-height: 200px;           /* 5 buttons at ~32px + spacing */
+  opacity: 1;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
 /* Charts section: fixed max-height cap so filters can use remaining space */
 #section-charts.open {
   max-height: 260px;           /* 7 buttons at ~32px + spacing */
@@ -367,10 +379,7 @@ header {
   display: flex;
   flex-direction: column;
 }
-/* sub-filter bodies scroll within the filters section */
-.sf-body.open {
-  flex-shrink: 0;
-}
+
 
 /* ── SIDEBAR CHART VISIBILITY ── */
 .sidebar-section-head {
@@ -1436,7 +1445,7 @@ function toggleSubFilter(name) {
   openSubFilter = opening ? name : null;
 
   if (opening) {
-    setTimeout(() => resizeSelect(name), 20);
+    setTimeout(() => resizeSelect(name), 50);
   }
 }
 
@@ -1471,28 +1480,31 @@ function getSidebarFixedAbove() {
 }
 
 function resizeSelect(name) {
-  const sel = document.getElementById('f-' + name);
-  if (!sel) return;
+  const sel     = document.getElementById('f-' + name);
+  const sfHead  = document.getElementById('sf-body-' + name)?.previousElementSibling;
+  const resetBtn = document.getElementById('reset-btn-top');
+  const sidebar  = document.getElementById('sidebar');
+  if (!sel || !sfHead || !sidebar) return;
 
   const optionCount = sel.options.length;
   const ROW_H  = 22;
   const idealH = optionCount * ROW_H + 6;
 
-  // Count sf-heads ABOVE and AT this filter (all are always rendered at SF_HEAD_H)
+  // Measure how many sf-heads are BELOW this one (they're always visible and stable)
   const myIdx      = SF_ORDER.indexOf(name);
-  const headsAbove = myIdx >= 0 ? myIdx + 1 : SF_ORDER.length; // +1 includes own head
-
-  // Heads BELOW (all collapsed after this one closes)
   const headsBelow = myIdx >= 0 ? SF_ORDER.length - 1 - myIdx : 0;
 
-  const sidebar     = document.getElementById('sidebar');
-  const sidebarH    = sidebar ? sidebar.clientHeight : 600;
-  const fixedAbove  = getSidebarFixedAbove();
+  // Anchor: bottom of sidebar visible area
+  const sidebarRect = sidebar.getBoundingClientRect();
+  const sidebarBot  = sidebarRect.bottom - SIDEBAR_PAD_BOT;
 
-  // Total space in sidebar minus: fixed elements above + heads above + heads below + pad
-  const usedAbove   = fixedAbove + headsAbove * SF_HEAD_H;
-  const usedBelow   = headsBelow * SF_HEAD_H + SIDEBAR_PAD_BOT;
-  const available   = Math.max(60, sidebarH - usedAbove - usedBelow);
+  // Top of this select = bottom of its sf-head (stable, doesn't move during transition)
+  const headRect  = sfHead.getBoundingClientRect();
+  const selectTop = headRect.bottom;
+
+  // Space below = sidebar bottom minus heads below minus reset button minus small pad
+  const reservedBelow = headsBelow * SF_HEAD_H + RESET_BTN_H + 4;
+  const available = Math.max(60, sidebarBot - selectTop - reservedBelow);
 
   sel.style.height = Math.min(idealH, available) + 'px';
 }
@@ -1568,24 +1580,37 @@ function initDragDrop() {
 // KPI TEXT SCALING
 // ═══════════════════════════════════════════════════════════
 function scaleKpiText() {
-  const kpis = document.querySelectorAll('.kpi');
+  const kpis = document.querySelectorAll('.kpi:not([style*="display: none"])');
   kpis.forEach(kpi => {
-    const body = kpi.querySelector('.kpi-body');
-    if (!body) return;
-    const bodyH = body.offsetHeight;
-    if (bodyH < 10) return;
-    // 4 blines fill the body height with ~10% padding each side
-    const N_LINES = 4;
-    const lineH   = bodyH / N_LINES;
-    // font roughly 0.6× line height to give breathing room
-    const fs      = Math.max(7, Math.min(13, lineH * 0.58));
-    kpi.querySelectorAll('.kpi-bline').forEach(el => {
-      el.style.fontSize = fs.toFixed(1) + 'px';
-    });
-    // Label scales too: same ratio as bline vs 7.5px baseline
-    const lblFs = Math.max(7, Math.min(9, 8 * (fs / 9)));
-    const lbl = kpi.querySelector('.kpi-lbl');
-    if (lbl) lbl.style.fontSize = lblFs.toFixed(1) + 'px';
+    const kpiH = kpi.offsetHeight;
+    if (kpiH < 20) return;
+
+    const lblEl  = kpi.querySelector('.kpi-lbl');
+    const valEl  = kpi.querySelector('.kpi-val');
+    const blines = kpi.querySelectorAll('.kpi-bline');
+    if (!blines.length) return;
+
+    // Available height for blines = total card height minus:
+    //   vertical padding (28px top+bottom), border (3px top),
+    //   label row (~14px), margin between label and body (~4px)
+    const PAD = 31; // padding + border
+    const LBL = 14; // label row approximate height
+    const BODY_GAP = 4;
+    const avail = Math.max(24, kpiH - PAD - LBL - BODY_GAP);
+
+    // 4 blines share available height; 85% fill factor for visual breathing room
+    const lineH = (avail / 4) * 0.85;
+    const fs    = Math.max(9, Math.min(16, lineH));
+
+    blines.forEach(el => { el.style.fontSize = fs.toFixed(1) + 'px'; });
+
+    // Label: slightly smaller than bline, same tracking
+    const lblFs = Math.max(8, Math.min(10, fs * 0.72));
+    if (lblEl) lblEl.style.fontSize = lblFs.toFixed(1) + 'px';
+
+    // Big value: 2.4× bline, constrained 22-36px
+    const valFs = Math.max(20, Math.min(34, fs * 2.4));
+    if (valEl) valEl.style.fontSize = valFs.toFixed(1) + 'px';
   });
 }
 
