@@ -228,6 +228,14 @@ header {
   display: grid; grid-template-columns: repeat(5, 1fr);
   grid-auto-rows: 130px;
   gap: 12px; margin-bottom: 22px;
+  /* Don't let text content blow out grid columns */
+  width: 100%;
+  min-width: 0;
+}
+/* Each KPI cell must not exceed its 1fr column */
+.kpi-grid > .kpi {
+  min-width: 0;
+  overflow: hidden;
 }
 .kpi {
   background: white; border: 1px solid var(--border);
@@ -254,12 +262,15 @@ header {
 .kpi-body > .kpi-val {
   align-self: flex-start;
   margin-top: 2px;
+  min-width: 0;
+  flex-shrink: 1;
 }
 .kpi-breakdown {
   display: flex; flex-direction: column;
   justify-content: space-between;   /* evenly spread lines to fill height */
-  text-align: right; flex-shrink: 0;
+  text-align: right; flex-shrink: 1;
   flex: 1;                          /* take remaining vertical space */
+  min-width: 0; overflow: hidden;
   gap: 0;
 }
 .kpi-bline {
@@ -268,6 +279,7 @@ header {
   font-size: 7.5px; /* overridden by JS scaleKpiText() */
   flex: 1; display: flex; align-items: center; justify-content: flex-end;
   transition: font-size 0.15s;
+  min-width: 0; overflow: hidden;
 }
 .kpi-bline .bline-label {
   color: var(--dust); opacity: 0.7; margin-right: 3px;
@@ -1600,16 +1612,22 @@ function scaleKpiText() {
 
     // 4 blines share available height; 85% fill factor for visual breathing room
     const lineH = (avail / 4) * 0.85;
-    const fs    = Math.max(9, Math.min(16, lineH));
+
+    // Also constrain by cell width so text never overflows.
+    // Approximate cell inner width: (window.innerWidth - 252 sidebar - 56 padding) / 5 - 32 kpi-padding
+    const cellW   = Math.max(120, (window.innerWidth - 252 - 56) / 5 - 32);
+    // Longest bline text is ~20 chars ("Custom Crush $45.2M"); DM Mono char width ≈ 0.60× font-size
+    const maxByW  = cellW / (20 * 0.60);
+    const fs      = Math.max(9, Math.min(13, lineH, maxByW));
 
     blines.forEach(el => { el.style.fontSize = fs.toFixed(1) + 'px'; });
 
     // Label: slightly smaller than bline, same tracking
-    const lblFs = Math.max(8, Math.min(10, fs * 0.72));
+    const lblFs = Math.max(7, Math.min(9, fs * 0.72));
     if (lblEl) lblEl.style.fontSize = lblFs.toFixed(1) + 'px';
 
-    // Big value: 2.4× bline, constrained 22-36px
-    const valFs = Math.max(20, Math.min(34, fs * 2.4));
+    // Big value: 2.2× bline, constrained 20-32px
+    const valFs = Math.max(20, Math.min(32, fs * 2.2));
     if (valEl) valEl.style.fontSize = valFs.toFixed(1) + 'px';
   });
 }
