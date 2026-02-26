@@ -134,8 +134,16 @@ header {
   color: rgba(255,255,255,0.5); font-family: 'DM Mono', monospace;
   font-size: 9px; letter-spacing: 0.1em; padding: 4px 10px;
   border-radius: 3px; cursor: pointer; transition: all 0.2s;
+  position: relative;
 }
-.refresh-btn:hover { border-color: var(--gold-light); color: var(--gold-light); }
+.refresh-btn:hover:not(:disabled) { border-color: var(--gold-light); color: var(--gold-light); }
+.refresh-btn:disabled { cursor: default; opacity: 0.6; }
+.refresh-btn.refreshing { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.6); }
+.refresh-btn.refreshing .refresh-icon { display: inline-block; animation: spin 0.8s linear infinite; }
+.refresh-btn.refresh-ok { border-color: #4ade80; color: #4ade80; }
+.refresh-btn.refresh-err { border-color: #f87171; color: #f87171; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.refresh-icon { display: inline-block; }
 
 /* ── LAYOUT ── */
 .app-body { display: grid; grid-template-columns: 252px 1fr; grid-template-rows: 1fr; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
@@ -793,7 +801,7 @@ footer {
   <div class="header-right">
     <div class="live-badge"><span class="live-dot"></span>Live · SharePoint</div>
     <div class="sync-time" id="sync-time">—</div>
-    <button class="refresh-btn" onclick="refreshData()">↺ Refresh</button>
+    <button class="refresh-btn" id="refresh-btn" onclick="refreshData()"><span class="refresh-icon">↺</span> <span class="refresh-label">Refresh</span></button>
   </div>
 </header>
 <!-- Mobile sidebar overlay backdrop -->
@@ -1585,23 +1593,34 @@ const TOGGLES = {
   cust:    'rev',    // rev  | tons
 };
 
+// Maps each toggle key to the function that redraws only that chart
+const TOGGLE_RENDER_MAP = {
+  ava:     () => render_chart_ava(getFilteredData()),
+  avaPct:  () => render_chart_ava(getFilteredData()),
+  donut:   () => render_chart_donut(getFilteredData()),
+  ppt:     () => render_chart_ppt(getFilteredData()),
+  pptSort: () => render_chart_ppt(getFilteredData()),
+  var:     () => render_chart_var(getFilteredData()),
+  term:    () => render_chart_term(getFilteredData()),
+  cust:    () => render_chart_cust(getFilteredData()),
+};
+
 function setToggle(chart, val) {
   if (chart === 'avaPct') {
-    // Boolean toggle: clicking again turns it off
     TOGGLES.avaPct = !TOGGLES.avaPct;
     document.getElementById('tog-ava-pct')?.classList.toggle('active', TOGGLES.avaPct);
-    renderDashboard();
-    return;
+  } else {
+    TOGGLES[chart] = val;
+    document.querySelectorAll(`[id^="tog-${chart}-"]`).forEach(btn => {
+      btn.classList.toggle('active', btn.id === `tog-${chart}-${val}`);
+    });
+    if (chart === 'ava') {
+      document.getElementById('tog-ava-pct')?.classList.toggle('active', TOGGLES.avaPct);
+    }
   }
-  TOGGLES[chart] = val;
-  document.querySelectorAll(`[id^="tog-${chart}-"]`).forEach(btn => {
-    btn.classList.toggle('active', btn.id === `tog-${chart}-${val}`);
-  });
-  // If switching ava metric, do NOT touch tog-ava-pct (separate dimension)
-  if (chart === 'ava') {
-    document.getElementById('tog-ava-pct')?.classList.toggle('active', TOGGLES.avaPct);
-  }
-  renderDashboard();
+  // Re-render only the chart whose toggle changed
+  const fn = TOGGLE_RENDER_MAP[chart];
+  if (fn) fn();
 }
 
 // ── CHART VISIBILITY ──────────────────────────────────────
@@ -1990,6 +2009,19 @@ function renderDashboard() {
   // Scale KPI text to fill widget height
   setTimeout(scaleKpiText, 20);
 
+
+  // ── Charts ──
+  render_chart_ava(data);
+  render_chart_donut(data);
+  render_chart_prog(data);
+  render_chart_ppt(data);
+  render_chart_var(data);
+  render_chart_term(data);
+  render_chart_cust(data);
+  render_table(data);
+}
+
+function render_chart_ava(data) {
   // ── Chart 1: Revenue/Tons/% by AVA or Vineyard ──
   const avasInData = [...new Set(data.map(d=>d.ava))].filter(Boolean);
   const singleAva  = avasInData.length === 1;
@@ -2047,7 +2079,9 @@ function renderDashboard() {
       }
     }
   });
+}
 
+function render_chart_donut(data) {
   // ── Chart 2: Status Donut (tons or acres) ──
   const donutMode = TOGGLES.donut;
   document.getElementById('donut-title').textContent =
@@ -2078,7 +2112,9 @@ function renderDashboard() {
       }
     }
   });
+}
 
+function render_chart_prog(data) {
   // ── Progress bars: % sold by vineyard, sorted most→least ──
   const vinMap = {};
   data.forEach(d => {
@@ -2099,7 +2135,9 @@ function renderDashboard() {
       </div>
       <div class="prog-bg"><div class="prog-fill" style="width:${v.pct*100}%"></div></div>
     </div>`).join('');
+}
 
+function render_chart_ppt(data) {
   // ── Chart 4: $/Ton or Acres by Vineyard, axis uses vinCode ──
   const pptMode = TOGGLES.ppt; // 'ppt' or 'acre'
   document.getElementById('ppt-title').textContent =
@@ -2175,7 +2213,9 @@ function renderDashboard() {
       </span>`;
     }).join('');
   })();
+}
 
+function render_chart_var(data) {
   // ── Chart 5: Revenue or Tons by Varietal (top 12), stacked by Status ──
   const varMode = TOGGLES.var;
   document.getElementById('var-title').textContent =
@@ -2225,7 +2265,9 @@ function renderDashboard() {
       }
     }
   });
+}
 
+function render_chart_term(data) {
   // ── Chart 6: Revenue or Tons by Remaining Contract Term ──
   // Grouping: "Open" status = own column; no finalYear OR finalYear<=2025 = "EG"; else year
   const termMode = TOGGLES.term;
@@ -2275,7 +2317,9 @@ function renderDashboard() {
       }
     }
   });
+}
 
+function render_chart_cust(data) {
   // ── Chart 7: Revenue or Tons by Customer (scrollable progress bars) ──
   const custMode = TOGGLES.cust;
   document.getElementById('cust-title').textContent =
@@ -2297,7 +2341,9 @@ function renderDashboard() {
       </div>
       <div class="rev-bg"><div class="rev-fill" style="width:${(val/custMax*100).toFixed(1)}%"></div></div>
     </div>`).join('');
+}
 
+function render_table(data) {
   // ── Detail Table ──
   const tableData = sortCol
     ? [...data].sort((a,b)=>{
@@ -2354,6 +2400,7 @@ function renderDashboard() {
   document.getElementById('tbl-badge').textContent  = `${fmtN(tableData.length)} Records`;
   document.getElementById('footer-count').textContent = fmtN(tableData.length);
 }
+
 
 // ═══════════════════════════════════════════════════════════
 // TABLE SORT
@@ -2451,10 +2498,57 @@ async function loadData() {
 }
 
 async function refreshData() {
-  document.getElementById('loading-overlay').style.display = 'flex';
-  document.getElementById('loading-overlay').classList.remove('fade-out');
-  document.getElementById('load-error').style.display = 'none';
-  await loadData();
+  const btn = document.getElementById('refresh-btn');
+  const label = btn?.querySelector('.refresh-label');
+
+  // Set spinning state
+  btn?.classList.add('refreshing');
+  btn?.setAttribute('disabled', '');
+  if (label) label.textContent = 'Syncing…';
+
+  try {
+    const token = await getToken();
+    const values = await fetchSheetData(token);
+    ALL_DATA = parseRows(values);
+
+    // Preserve current filter selections — don't call buildFilters()
+    // which would reset everything. Just re-render with existing state.
+    renderDashboard();
+    updateKpiGrid();
+
+    const now = new Date();
+    document.getElementById('sync-time').textContent =
+      `Synced ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+
+    // Brief success flash
+    btn?.classList.remove('refreshing');
+    btn?.classList.add('refresh-ok');
+    if (label) label.textContent = '✓ Synced';
+    setTimeout(() => {
+      btn?.classList.remove('refresh-ok');
+      btn?.removeAttribute('disabled');
+      if (label) label.textContent = 'Refresh';
+    }, 2000);
+
+  } catch (err) {
+    btn?.classList.remove('refreshing');
+    btn?.classList.add('refresh-err');
+    btn?.removeAttribute('disabled');
+    // Classify error same as loadData
+    let userMsg = 'Refresh failed';
+    if (err.errorCode === 'user_cancelled') {
+      userMsg = 'Cancelled';
+    } else if (err.message?.includes('Graph API error 403')) {
+      userMsg = 'Access denied';
+    } else if (err.message?.includes('Graph API error 401')) {
+      userMsg = 'Auth expired';
+    }
+    if (label) label.textContent = userMsg;
+    setTimeout(() => {
+      btn?.classList.remove('refresh-err');
+      if (label) label.textContent = 'Refresh';
+    }, 3000);
+  }
 }
 
 // Diagnostic error handlers — show real detail
