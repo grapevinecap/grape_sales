@@ -137,7 +137,7 @@ header {
 .refresh-btn:hover { border-color: var(--gold-light); color: var(--gold-light); }
 
 /* ── LAYOUT ── */
-.app-body { display: grid; grid-template-columns: 252px 1fr; height: calc(100vh - 79px); overflow: hidden; }
+.app-body { display: grid; grid-template-columns: 252px 1fr; height: calc(100vh - 79px); }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -243,8 +243,9 @@ header {
 /* Right column: flex column so footer pins to bottom */
 .main-col {
   display: flex; flex-direction: column;
-  height: 100%;
+  min-height: 0;      /* lets the grid cell constrain flex children */
   min-width: 0;
+  overflow: hidden;   /* clips to grid cell height so .content can scroll */
 }
 .content {
   padding: 24px 28px;
@@ -1948,7 +1949,7 @@ function renderDashboard() {
 
   function blineHTML(rows) {
     return rows.map(([lbl, val]) =>
-      `<div class="kpi-bline"><span class="bline-label">${lbl}</span> ${val}</div>`
+      `<div class="kpi-bline"><span class="bline-label">${lbl}:</span> ${val}</div>`
     ).join('');
   }
 
