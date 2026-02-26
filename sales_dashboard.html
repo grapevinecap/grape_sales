@@ -1546,13 +1546,28 @@ function setToggle(chart, val) {
 
 // ── CHART VISIBILITY ──────────────────────────────────────
 const CHART_VISIBLE = {
-  ava: true, donut: true, prog: true, ppt: true,
-  var: true, term: true, cust: true
+  ava: true, donut: true, prog: false, ppt: false,
+  var: false, term: false, cust: false
 };
 
 // ── WIDGET VISIBILITY ─────────────────────────────────────
 const KPI_IDS = ['rev','tons','acres','ppt','tpa'];
-const KPI_VISIBLE = { rev: true, tons: true, acres: true, ppt: true, tpa: true };
+const KPI_VISIBLE = { rev: true, tons: true, acres: false, ppt: false, tpa: false };
+
+function applyInitialVisibility() {
+  // KPI widgets
+  KPI_IDS.forEach(id => {
+    const btn = document.getElementById('vis-kpi-' + id);
+    if (btn) btn.classList.toggle('hidden-chart', !KPI_VISIBLE[id]);
+  });
+  // Charts
+  Object.keys(CHART_VISIBLE).forEach(id => {
+    const slot = document.getElementById('slot-' + id);
+    const btn  = document.getElementById('vis-' + id);
+    if (slot) slot.classList.toggle('slot-hidden', !CHART_VISIBLE[id]);
+    if (btn)  btn.classList.toggle('hidden-chart', !CHART_VISIBLE[id]);
+  });
+}
 
 function toggleWidget(id) {
   KPI_VISIBLE[id] = !KPI_VISIBLE[id];
@@ -2337,6 +2352,7 @@ async function loadData() {
 
     setProgress(90, 'Building dashboard…');
     buildFilters();
+    applyInitialVisibility();
     renderDashboard();
     updateKpiGrid();
     initDragDrop();
