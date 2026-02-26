@@ -137,7 +137,7 @@ header {
 .refresh-btn:hover { border-color: var(--gold-light); color: var(--gold-light); }
 
 /* ── LAYOUT ── */
-.app-body { display: grid; grid-template-columns: 252px 1fr; height: calc(100vh - 79px); }
+.app-body { display: grid; grid-template-columns: 252px 1fr; height: calc(100vh - 79px); overflow: hidden; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -243,9 +243,9 @@ header {
 /* Right column: flex column so footer pins to bottom */
 .main-col {
   display: flex; flex-direction: column;
-  min-height: 0;      /* lets the grid cell constrain flex children */
+  height: 100%;       /* fill the grid cell so flex children are bounded */
+  min-height: 0;
   min-width: 0;
-  overflow: hidden;   /* clips to grid cell height so .content can scroll */
 }
 .content {
   padding: 24px 28px;
@@ -298,26 +298,29 @@ header {
   line-height: 1.05;
 }
 .kpi-breakdown {
-  display: flex; flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;           /* right-align within the column */
-  text-align: right;
-  flex: 1 1 0;                     /* grow to fill, start from 0 basis */
-  align-self: stretch;             /* fill full height of kpi-body */
+  display: grid;
+  grid-template-columns: auto auto;  /* label col | value col */
+  align-content: space-between;      /* spread rows to fill height */
+  align-items: center;
+  flex: 1 1 0;
+  align-self: stretch;
   min-width: 0; overflow: hidden;
-  gap: 0;
+  gap: 0 4px;                        /* 4px gap between label and value */
 }
-.kpi-bline {
+.bline-label {
+  color: var(--dust); opacity: 0.7;
+  font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
+  font-size: 7.5px; /* overridden by JS scaleKpiText() */
+  white-space: nowrap; overflow: hidden;
+  text-align: right;   /* right-align label so colon hugs the gap */
+  transition: font-size 0.15s;
+}
+.bline-val {
   color: var(--dust); white-space: nowrap;
   font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
   font-size: 7.5px; /* overridden by JS scaleKpiText() */
-  flex: 1; display: flex; align-items: center; justify-content: flex-end;
+  text-align: left;    /* left-align values so they read naturally */
   transition: font-size 0.15s;
-  min-width: 0; overflow: hidden;
-  width: 100%;   /* fill the breakdown column fully */
-}
-.kpi-bline .bline-label {
-  color: var(--dust); opacity: 0.7; margin-right: 3px;
 }
 
 /* ── SECTION GRID ── */
@@ -1880,7 +1883,7 @@ function scaleKpiText() {
 
     const lblEl  = kpi.querySelector('.kpi-lbl');
     const valEl  = kpi.querySelector('.kpi-val');
-    const blines = kpi.querySelectorAll('.kpi-bline');
+    const blines = kpi.querySelectorAll('.bline-label, .bline-val');
     if (!blines.length) return;
 
     // Available height for blines = total card height minus:
@@ -1908,7 +1911,10 @@ function scaleKpiText() {
     const maxByW     = breakdownW / (19 * 0.58);
     const fs         = Math.max(9, Math.min(13, lineH, maxByW));
 
-    blines.forEach(el => { el.style.fontSize = fs.toFixed(1) + 'px'; });
+    // .kpi-bline is display:contents — style the actual rendered spans instead
+    kpi.querySelectorAll('.bline-label, .bline-val').forEach(el => {
+      el.style.fontSize = fs.toFixed(1) + 'px';
+    });
 
     // Label: slightly smaller than bline, same tracking
     const lblFs = Math.max(7, Math.min(9, fs * 0.72));
@@ -1948,8 +1954,9 @@ function renderDashboard() {
   });
 
   function blineHTML(rows) {
+    // Each row becomes two grid cells: right-aligned label and left-aligned value
     return rows.map(([lbl, val]) =>
-      `<div class="kpi-bline"><span class="bline-label">${lbl}:</span> ${val}</div>`
+      `<span class="bline-label">${esc(lbl)}:</span><span class="bline-val">${val}</span>`
     ).join('');
   }
 
