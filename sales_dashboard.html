@@ -811,7 +811,7 @@ footer {
     </div>
     <div class="collapsible-body" id="section-widgets">
       <button class="vis-btn" id="vis-kpi-rev"   onclick="toggleWidget('rev')">  <span class="vis-dot"></span>Gross Revenue</button>
-      <button class="vis-btn" id="vis-kpi-tons"  onclick="toggleWidget('tons')"> <span class="vis-dot"></span>Total Tonnage</button>
+      <button class="vis-btn" id="vis-kpi-tons"  onclick="toggleWidget('tons')"> <span class="vis-dot"></span>Total Tons</button>
       <button class="vis-btn" id="vis-kpi-acres" onclick="toggleWidget('acres')"><span class="vis-dot"></span>Total Acres</button>
       <button class="vis-btn" id="vis-kpi-ppt"   onclick="toggleWidget('ppt')">  <span class="vis-dot"></span>Wtd. Avg $/Ton</button>
       <button class="vis-btn" id="vis-kpi-tpa"   onclick="toggleWidget('tpa')">  <span class="vis-dot"></span>Wtd. Avg Tons/Acre</button>
@@ -823,7 +823,7 @@ footer {
     </div>
     <div class="collapsible-body" id="section-charts">
       <button class="vis-btn" id="vis-ava"   onclick="toggleChart('ava')">  <span class="vis-dot"></span>Revenue by AVA</button>
-      <button class="vis-btn" id="vis-donut" onclick="toggleChart('donut')"><span class="vis-dot"></span>Tonnage by Status</button>
+      <button class="vis-btn" id="vis-donut" onclick="toggleChart('donut')"><span class="vis-dot"></span>Tons by Status</button>
       <button class="vis-btn" id="vis-prog"  onclick="toggleChart('prog')"> <span class="vis-dot"></span>% Sold by Vineyard</button>
       <button class="vis-btn" id="vis-ppt"   onclick="toggleChart('ppt')">  <span class="vis-dot"></span>$/Ton by Vineyard</button>
       <button class="vis-btn" id="vis-var"   onclick="toggleChart('var')">  <span class="vis-dot"></span>Revenue by Varietal</button>
@@ -927,7 +927,7 @@ footer {
         </div>
       </div>
       <div class="kpi k-sage">
-        <div class="kpi-lbl">Total Tonnage</div>
+        <div class="kpi-lbl">Total Tons</div>
         <div class="kpi-body">
           <div class="kpi-val" id="k-tons">—</div>
           <div class="kpi-breakdown" id="k-tons-breakdown"></div>
@@ -981,7 +981,7 @@ footer {
         <div class="card">
           <div class="card-head">
             <span class="drag-handle" title="Drag to reorder">⠿</span>
-            <div class="card-title" id="donut-title">Tonnage by Status</div>
+            <div class="card-title" id="donut-title">Tons by Status</div>
             <div class="toggle-wrap">
               <button class="tog active" id="tog-donut-tons"  onclick="setToggle('donut','tons')">Tons</button>
               <button class="tog"        id="tog-donut-acres" onclick="setToggle('donut','acres')">Acres</button>
@@ -2051,7 +2051,7 @@ function renderDashboard() {
   // ── Chart 2: Status Donut (tons or acres) ──
   const donutMode = TOGGLES.donut;
   document.getElementById('donut-title').textContent =
-    donutMode === 'tons' ? 'Tonnage by Status' : 'Acreage by Status';
+    donutMode === 'tons' ? 'Tons by Status' : 'Acreage by Status';
   const statusAgg = {};
   data.forEach(d => {
     statusAgg[d.status] = (statusAgg[d.status]||0) + (donutMode==='tons' ? d.tons : d.acres);
@@ -2429,15 +2429,24 @@ async function loadData() {
     setTimeout(hideOverlay, 400);
 
   } catch (err) {
-    // Full error details intentionally not logged to console in production
-    // Show the real error details for diagnosis
-    const detail = [
-      err.errorCode ? 'errorCode: ' + err.errorCode : null,
-      err.errorMessage ? 'errorMessage: ' + err.errorMessage : null,
-      err.message ? 'message: ' + err.message : null,
-      err.subError ? 'subError: ' + err.subError : null,
-    ].filter(Boolean).join(' | ') || String(err);
-    showError(detail);
+    // Classify error for a helpful but non-leaking user message
+    let userMsg;
+    if (err.errorCode === 'popup_window_error' || err.errorCode === 'empty_window_error') {
+      userMsg = 'Login popup was blocked. Please allow popups for this site and try again.';
+    } else if (err.errorCode === 'user_cancelled') {
+      userMsg = 'Sign-in was cancelled. Click Refresh to try again.';
+    } else if (err.message?.includes('No data')) {
+      userMsg = 'No data found in the spreadsheet. Check the Allocation tab has rows.';
+    } else if (err.message?.includes('Graph API error 403')) {
+      userMsg = 'Access denied. Ensure your account has read access to this SharePoint file.';
+    } else if (err.message?.includes('Graph API error 401')) {
+      userMsg = 'Authentication expired. Please refresh and sign in again.';
+    } else if (err.message?.includes('Redirect URI')) {
+      userMsg = 'Configuration error: redirect URI mismatch. Contact your administrator.';
+    } else {
+      userMsg = 'Failed to load dashboard data. Please check your connection and try again.';
+    }
+    showError(userMsg);
   }
 }
 
@@ -2451,20 +2460,15 @@ async function refreshData() {
 // Diagnostic error handlers — show real detail
 window.onerror = function(msg, src, line, col, err) {
   const el = document.getElementById('load-error');
-  if (el) { el.style.display = 'block'; el.textContent = 'JS Error: ' + msg + ' (line ' + line + ')'; }
+  if (el) { el.style.display = 'block'; el.textContent = 'An unexpected error occurred. Please refresh the page.'; }
   const st = document.getElementById('load-status');
-  if (st) st.textContent = 'Script error.';
-  return false;
+  if (st) st.textContent = 'Unexpected error.';
+  return true; // suppress browser default error logging
 };
 window.addEventListener('unhandledrejection', function(e) {
   const el = document.getElementById('load-error');
-  const reason = e.reason;
-  const detail = [
-    reason?.errorCode ? 'errorCode: ' + reason.errorCode : null,
-    reason?.message   ? 'message: '   + reason.message   : null,
-    reason?.subError  ? 'subError: '  + reason.subError  : null,
-  ].filter(Boolean).join(' | ') || String(reason);
-  if (el) { el.style.display = 'block'; el.textContent = 'Async Error: ' + detail; }
+  if (el) { el.style.display = 'block'; el.textContent = 'An unexpected error occurred. Please refresh the page.'; }
+  e.preventDefault(); // suppress console output
 });
 
 // ═══════════════════════════════════════════════════════════
