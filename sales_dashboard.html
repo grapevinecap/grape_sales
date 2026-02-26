@@ -2600,6 +2600,9 @@ window.addEventListener('resize', () => {
 
 // Start
 loadData();
+
+// Auto-refresh every 15 minutes
+setInterval(refreshData, 15 * 60 * 1000);
 </script>
 </body>
 </html>
