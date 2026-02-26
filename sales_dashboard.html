@@ -47,7 +47,8 @@
   --shadow-md: 0 3px 20px rgba(28,23,18,0.1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; } /* page-level scroll disabled; columns scroll internally */
+html { height: 100%; overflow: hidden; }
+body { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
 
 body {
   font-family: 'DM Mono', monospace;
@@ -137,7 +138,7 @@ header {
 .refresh-btn:hover { border-color: var(--gold-light); color: var(--gold-light); }
 
 /* ── LAYOUT ── */
-.app-body { display: grid; grid-template-columns: 252px 1fr; height: calc(100vh - 79px); overflow: hidden; }
+.app-body { display: grid; grid-template-columns: 252px 1fr; grid-template-rows: 1fr; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -145,7 +146,7 @@ header {
   border-right: 1px solid var(--border);
   padding: 20px 16px;
   overflow-y: hidden;
-  height: 100%;           /* fills the app-body row height */
+  height: 100%;
   display: flex; flex-direction: column;
 }
 .sidebar-head {
@@ -243,8 +244,7 @@ header {
 /* Right column: flex column so footer pins to bottom */
 .main-col {
   display: flex; flex-direction: column;
-  height: 100%;       /* fill the grid cell so flex children are bounded */
-  min-height: 0;
+  min-height: 0;   /* allows flex children to scroll within grid cell */
   min-width: 0;
 }
 .content {
@@ -299,27 +299,29 @@ header {
 }
 .kpi-breakdown {
   display: grid;
-  grid-template-columns: auto auto;  /* label col | value col */
-  align-content: space-between;      /* spread rows to fill height */
+  grid-template-columns: 1fr auto;  /* label fills left; value column auto-sizes right */
+  align-content: space-between;
   align-items: center;
   flex: 1 1 0;
   align-self: stretch;
   min-width: 0; overflow: hidden;
-  gap: 0 4px;                        /* 4px gap between label and value */
+  gap: 0 5px;
 }
 .bline-label {
   color: var(--dust); opacity: 0.7;
   font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
   font-size: 7.5px; /* overridden by JS scaleKpiText() */
   white-space: nowrap; overflow: hidden;
-  text-align: right;   /* right-align label so colon hugs the gap */
+  text-align: right;
+  display: block; width: 100%;    /* fill the 1fr column so right-align works */
   transition: font-size 0.15s;
 }
 .bline-val {
   color: var(--dust); white-space: nowrap;
   font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
   font-size: 7.5px; /* overridden by JS scaleKpiText() */
-  text-align: left;    /* left-align values so they read naturally */
+  text-align: right;
+  display: block;
   transition: font-size 0.15s;
 }
 
@@ -633,8 +635,8 @@ footer {
 @media (max-width: 768px) {
 
   /* Restore normal document scroll on mobile — sidebar is a drawer, not a column */
-  html, body { overflow: auto; height: auto; }
-  .app-body { display: block; height: auto; overflow: visible; }
+  html, body { overflow: auto; height: auto; display: block; }
+  .app-body { display: block; flex: none; height: auto; overflow: visible; }
   .main-col { height: auto; overflow: visible; }
   .content { overflow-y: visible; flex: none; }
   /* footer mobile styles handled in block above */
