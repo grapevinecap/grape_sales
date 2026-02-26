@@ -2333,22 +2333,14 @@ async function loadData() {
 
   } catch (err) {
     // Full error details intentionally not logged to console in production
-    // Classify error for a helpful but non-leaking message
-    let userMsg = 'Authentication or data load failed.\n\n';
-    if (err.errorCode === 'popup_window_error' || err.errorCode === 'empty_window_error') {
-      userMsg = 'Login popup was blocked. Please allow popups for this site and try again.';
-    } else if (err.errorCode === 'user_cancelled') {
-      userMsg = 'Sign-in was cancelled. Click Refresh to try again.';
-    } else if (err.message?.includes('No data')) {
-      userMsg = 'No data found in the spreadsheet. Check the Allocation tab has rows.';
-    } else if (err.message?.includes('Graph API error 403')) {
-      userMsg = 'Access denied. Ensure your account has read access to this SharePoint file.';
-    } else if (err.message?.includes('Graph API error 401')) {
-      userMsg = 'Authentication expired. Please refresh and sign in again.';
-    } else {
-      userMsg = 'Failed to load dashboard data. Please check your connection and try again.';
-    }
-    showError(userMsg);
+    // Show the real error details for diagnosis
+    const detail = [
+      err.errorCode ? 'errorCode: ' + err.errorCode : null,
+      err.errorMessage ? 'errorMessage: ' + err.errorMessage : null,
+      err.message ? 'message: ' + err.message : null,
+      err.subError ? 'subError: ' + err.subError : null,
+    ].filter(Boolean).join(' | ') || String(err);
+    showError(detail);
   }
 }
 
@@ -2359,19 +2351,23 @@ async function refreshData() {
   await loadData();
 }
 
-// Catch any uncaught errors and show a generic message.
-// Raw error details (line numbers, stack traces) are not surfaced to the UI.
+// Diagnostic error handlers — show real detail
 window.onerror = function(msg, src, line, col, err) {
   const el = document.getElementById('load-error');
-  if (el) { el.style.display = 'block'; el.textContent = 'An unexpected error occurred. Please refresh the page.'; }
+  if (el) { el.style.display = 'block'; el.textContent = 'JS Error: ' + msg + ' (line ' + line + ')'; }
   const st = document.getElementById('load-status');
-  if (st) st.textContent = 'Unexpected error.';
-  return true; // prevent default browser error logging
+  if (st) st.textContent = 'Script error.';
+  return false;
 };
 window.addEventListener('unhandledrejection', function(e) {
   const el = document.getElementById('load-error');
-  if (el) { el.style.display = 'block'; el.textContent = 'An unexpected error occurred. Please refresh the page.'; }
-  e.preventDefault(); // suppress console output of unhandled rejection
+  const reason = e.reason;
+  const detail = [
+    reason?.errorCode ? 'errorCode: ' + reason.errorCode : null,
+    reason?.message   ? 'message: '   + reason.message   : null,
+    reason?.subError  ? 'subError: '  + reason.subError  : null,
+  ].filter(Boolean).join(' | ') || String(reason);
+  if (el) { el.style.display = 'block'; el.textContent = 'Async Error: ' + detail; }
 });
 
 // ═══════════════════════════════════════════════════════════
