@@ -589,10 +589,13 @@ footer {
   background: rgba(28,23,18,0.55);
   z-index: 149;
   opacity: 0;
+  pointer-events: none;   /* never intercept taps while hidden */
   transition: opacity 0.25s;
 }
 .sidebar-backdrop.visible {
+  display: block;
   opacity: 1;
+  pointer-events: auto;   /* only intercept taps when actually open */
 }
 
 /* ════════════════════════════════════════════════════
@@ -649,7 +652,7 @@ footer {
     transform: translateX(0);
     box-shadow: 4px 0 24px rgba(28,23,18,0.25);
   }
-  .sidebar-backdrop { display: block; }
+  /* sidebar-backdrop visibility is controlled by JS, not media query */
 
   /* Main content: full width */
   .content {
