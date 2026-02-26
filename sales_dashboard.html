@@ -3,9 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self' 'unsafe-inline'
+    https://cdnjs.cloudflare.com
+    https://alcdn.msauth.net;
+  style-src 'self' 'unsafe-inline'
+    https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  connect-src
+    https://graph.microsoft.com
+    https://login.microsoftonline.com
+    https://login.microsoft.com;
+  img-src 'self' data:;
+  frame-src https://login.microsoftonline.com;
+  frame-ancestors 'none';
+  base-uri 'none';
+  form-action 'none';
+">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="no-referrer">
 <title>Kylix Vineyards — 2026 Grape Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb" crossorigin="anonymous"></script>
 <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 <style>
 :root {
@@ -532,6 +552,152 @@ footer {
   font-size: 9px; color: var(--dust);
 }
 .footer-count { color: var(--wine); font-weight: 500; }
+
+/* ════════════════════════════════════════════════════
+   HAMBURGER BUTTON (hidden on desktop)
+════════════════════════════════════════════════════ */
+.hamburger {
+  display: none;
+  flex-direction: column; justify-content: center; align-items: center;
+  gap: 5px; width: 36px; height: 36px;
+  background: none; border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px; cursor: pointer; flex-shrink: 0;
+  padding: 0;
+}
+.hamburger span {
+  display: block; width: 18px; height: 2px;
+  background: rgba(255,255,255,0.7); border-radius: 2px;
+  transition: all 0.25s;
+}
+/* Animate hamburger → X when sidebar open */
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ════════════════════════════════════════════════════
+   SIDEBAR BACKDROP (mobile only)
+════════════════════════════════════════════════════ */
+.sidebar-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(28,23,18,0.55);
+  z-index: 149;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.sidebar-backdrop.visible {
+  opacity: 1;
+}
+
+/* ════════════════════════════════════════════════════
+   BREAKPOINT: TABLET  ≤ 1024px
+   Slightly narrower sidebar, tighter padding
+════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .app-body { grid-template-columns: 220px 1fr; }
+  .content { padding: 18px 20px; }
+  .kpi-grid { grid-auto-rows: 110px; }
+  .kpi { min-height: 110px; padding: 10px 12px; }
+  .chart-slot .card { height: 320px; }
+}
+
+/* ════════════════════════════════════════════════════
+   BREAKPOINT: MOBILE  ≤ 768px
+   Sidebar becomes a slide-in drawer from the left.
+   Charts go single-column. KPIs stack 2×3 then 1×5.
+════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Header: show hamburger, compress layout */
+  header {
+    padding: 14px 16px 12px;
+    gap: 10px;
+  }
+  .header-left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hamburger { display: flex; }
+  .header-left h1 { font-size: 18px; }
+  .header-left .subtitle { font-size: 8px; margin-top: 3px; }
+  .live-badge { display: none; } /* hide on mobile — saves space */
+  .sync-time { font-size: 8px; }
+
+  /* App body: remove grid, sidebar goes out-of-flow */
+  .app-body { display: block; }
+
+  /* Sidebar: fixed drawer, slides in from left */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 280px;
+    height: 100dvh;
+    z-index: 150;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: none;
+    /* Override sticky positioning */
+    overflow-y: auto;
+    padding-top: 24px;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(28,23,18,0.25);
+  }
+  .sidebar-backdrop { display: block; }
+
+  /* Main content: full width */
+  .content {
+    padding: 16px 14px;
+    overflow-y: visible;
+    /* Reserve no space for sidebar */
+    width: 100%;
+  }
+
+  /* KPIs: 2 per row on mobile */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 100px;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .kpi { min-height: 100px; padding: 10px 12px; }
+
+  /* Charts: single column */
+  #chart-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  #chart-grid .chart-slot.slot-wide {
+    grid-column: span 1; /* wide cards revert to full width */
+  }
+  .chart-slot .card { height: 300px; }
+
+  /* Table: horizontal scroll */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 700px; }
+
+  /* Row grids: single column */
+  .row2, .row3 { grid-template-columns: 1fr; gap: 14px; }
+
+  /* Footer: stack vertically */
+  footer { flex-direction: column; gap: 4px; text-align: center; padding: 10px 16px; }
+}
+
+/* ════════════════════════════════════════════════════
+   BREAKPOINT: SMALL PHONE  ≤ 480px
+   KPIs go single column for very narrow screens
+════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 90px;
+  }
+  .kpi { min-height: 90px; }
+  header { padding: 12px 12px 10px; }
+  .content { padding: 12px 10px; }
+  .header-left h1 { font-size: 15px; }
+  .chart-slot .card { height: 260px; }
+}
 </style>
 </head>
 <body>
@@ -548,8 +714,13 @@ footer {
 <!-- HEADER -->
 <header>
   <div class="header-left">
-    <h1>Grape Sales Dashboard</h1>
-    <div class="subtitle">2026 Vintage</div>
+    <button class="hamburger" id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Toggle filters">
+      <span></span><span></span><span></span>
+    </button>
+    <div>
+      <h1>Grape Sales Dashboard</h1>
+      <div class="subtitle">2026 Vintage</div>
+    </div>
   </div>
   <div class="header-right">
     <div class="live-badge"><span class="live-dot"></span>Live · SharePoint</div>
@@ -557,6 +728,8 @@ footer {
     <button class="refresh-btn" onclick="refreshData()">↺ Refresh</button>
   </div>
 </header>
+<!-- Mobile sidebar overlay backdrop -->
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
 <div class="app-body">
 
@@ -888,13 +1061,22 @@ const DRIVE_ID    = 'b!THdqobnhOESr0NxVFuSL0WZopZ7ho7tPumU34s07K3exJUofRGtKR7P09
 const ITEM_ID     = '01W4NDSPSK5XQCK4BKXVCJJHZZREBVITH3';
 const SHEET_NAME  = 'Allocation';
 
-// REDIRECT URI: points to auth-redirect.html in the same folder.
-// Register THAT URL (not this dashboard URL) in Azure Portal:
-// App Registration → Authentication → Single-page application
+// REDIRECT URI: always resolves to auth-redirect.html on the same origin.
+// Validated to ensure it cannot be manipulated to redirect to a foreign host.
 const REDIRECT_URI = (() => {
-  const base = window.location.href.split('?')[0].split('#')[0];
+  const loc = window.location;
+  // Only allow file:// or https:// (not javascript:, data:, etc.)
+  if (loc.protocol !== 'https:' && loc.protocol !== 'file:') {
+    throw new Error('Dashboard must be served over HTTPS or opened as a local file.');
+  }
+  const base = loc.href.split('?')[0].split('#')[0];
   const folder = base.substring(0, base.lastIndexOf('/') + 1);
-  return folder + 'auth-redirect.html';
+  const uri = folder + 'auth-redirect.html';
+  // Sanity check: must be same origin
+  if (loc.protocol === 'https:' && !uri.startsWith(loc.origin + '/')) {
+    throw new Error('Redirect URI origin mismatch — possible configuration error.');
+  }
+  return uri;
 })();
 
 const msalConfig = {
@@ -957,7 +1139,7 @@ async function getToken() {
       });
       return result.accessToken;
     } catch (silentErr) {
-      console.log('Silent token failed, falling back to popup:', silentErr.errorCode);
+      // Silent token failed — fall through to popup (no logging in production)
     }
   }
 
@@ -1027,14 +1209,7 @@ function detectColumns(headerRow) {
   COL.block      = findCol(map, ['block','block name','block id','block #']);
   COL.blockCode  = findCol(map, ['block code','blockcode','blk code','blk cd','code']);
 
-  console.log('Detected columns:', COL);
-  console.log('Header row:', headerRow.slice(0, 40));
-  // Explicitly confirm which acres column was picked
-  if (COL.acres !== null) {
-    console.log(`✅ Acres column → index ${COL.acres}: "${headerRow[COL.acres]}"`);
-  } else {
-    console.warn('⚠️ No acres column detected — check header names');
-  }
+  // Column detection debug output removed for production security.
 }
 
 function findCol(map, candidates) {
@@ -1315,6 +1490,18 @@ function fmtM(n)  { return '$' + (n/1e6).toFixed(1) + 'M'; }
 function fmtK(n)  { if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(0)+'K'; return '$'+Math.round(n); }
 function fmtN(n)  { return Math.round(n).toLocaleString(); }
 
+// HTML-escape user/spreadsheet data before insertion into innerHTML
+// Prevents XSS if a spreadsheet cell contains <script> or event handlers
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ═══════════════════════════════════════════════════════════
 // TOGGLE STATE
 // ═══════════════════════════════════════════════════════════
@@ -1369,14 +1556,17 @@ function updateKpiGrid() {
   const grid = document.querySelector('.kpi-grid');
   if (!grid) return;
   const visibleCount = KPI_IDS.filter(id => KPI_VISIBLE[id]).length;
-  grid.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+  // On mobile, CSS media query handles columns — only override on desktop
+  if (window.innerWidth > 768) {
+    grid.style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+  } else {
+    grid.style.gridTemplateColumns = ''; // let CSS media query control it
+  }
   KPI_IDS.forEach(id => {
-    // Find kpi by its val element id
     const valEl = document.getElementById('k-' + id);
     const kpiEl = valEl?.closest('.kpi');
     if (kpiEl) kpiEl.style.display = KPI_VISIBLE[id] ? '' : 'none';
   });
-  // Rescale text after layout changes
   setTimeout(scaleKpiText, 50);
 }
 
@@ -1618,8 +1808,14 @@ function scaleKpiText() {
     const lineH = (avail / 4) * 0.85;
 
     // Constrain by the actual breakdown column width.
-    // breakdown ≈ 48% of inner cell width; cell ≈ (viewport - 252 sidebar - 56 padding)/5 - 32 cell-pad
-    const cellW      = Math.max(100, (window.innerWidth - 252 - 56) / 5 - 32);
+    // Detect layout: mobile (≤768) = 2 cols no sidebar; small (≤480) = 1 col no sidebar
+    const isMobile  = window.innerWidth <= 768;
+    const isSmall   = window.innerWidth <= 480;
+    const sidebarW  = isMobile ? 0 : (window.innerWidth <= 1024 ? 220 : 252);
+    const padW      = isMobile ? 28 : 56;
+    const visCount  = KPI_IDS.filter(id => KPI_VISIBLE[id]).length;
+    const cols      = isSmall ? 1 : (isMobile ? Math.min(2, visCount) : visCount);
+    const cellW     = Math.max(100, (window.innerWidth - sidebarW - padW) / cols - (cols > 1 ? 20 : 10));
     const breakdownW = Math.max(60, cellW * 0.48 - 6);
     // Longest label+value: "Custom Crush $45.2M" ≈ 19 chars; DM Mono char width ≈ 0.58× font-size
     const maxByW     = breakdownW / (19 * 0.58);
@@ -1802,7 +1998,7 @@ function renderDashboard() {
   document.getElementById('prog-vineyard').innerHTML = vinList.map(v => `
     <div class="prog-item">
       <div class="prog-meta">
-        <span class="prog-name">${v.name}</span>
+        <span class="prog-name">${esc(v.name)}</span>
         <span class="prog-stat">${(v.pct*100).toFixed(0)}% · ${fmtN(v.sold)}/${fmtN(v.total)}T</span>
       </div>
       <div class="prog-bg"><div class="prog-fill" style="width:${v.pct*100}%"></div></div>
@@ -1877,8 +2073,9 @@ function renderDashboard() {
     vinPPT.forEach(v => { if (!seenAvas.includes(v.ava)) seenAvas.push(v.ava); });
     legendEl.innerHTML = seenAvas.map(ava => {
       const col = getAvaColor(ava);
+      // col is from a fixed palette (not spreadsheet data), ava text is escaped
       return `<span style="display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:8px;color:var(--dust);letter-spacing:0.08em;white-space:nowrap;">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${col};flex-shrink:0;"></span>${ava}
+        <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${col};flex-shrink:0;"></span>${esc(ava)}
       </span>`;
     }).join('');
   })();
@@ -1999,7 +2196,7 @@ function renderDashboard() {
   document.getElementById('rev-customer').innerHTML = custList.map(([name, val]) => `
     <div class="rev-item">
       <div class="rev-meta">
-        <span class="rev-name">${name}</span>
+        <span class="rev-name">${esc(name)}</span>
         <span class="rev-stat">${custMode==='rev' ? fmtK(val) : fmtN(val)+' T'}</span>
       </div>
       <div class="rev-bg"><div class="rev-fill" style="width:${(val/custMax*100).toFixed(1)}%"></div></div>
@@ -2041,15 +2238,15 @@ function renderDashboard() {
 
   document.getElementById('tbl-body').innerHTML = tableData.map(d=>`
     <tr>
-      <td>${d.vineyard}</td>
-      <td>${d.block||'—'}</td>
-      <td>${d.varietal}</td>
-      <td>${d.owner}</td>
-      <td>${d.ava}</td>
-      <td>${d.state}</td>
-      <td>${d.county}</td>
-      <td><span class="pill p-${d.status.toLowerCase().replace(/\s+/g,'-').replace('custom-crush','cc')}">${d.status}</span></td>
-      <td>${d.customer}</td>
+      <td>${esc(d.vineyard)}</td>
+      <td>${esc(d.block)||'—'}</td>
+      <td>${esc(d.varietal)}</td>
+      <td>${esc(d.owner)}</td>
+      <td>${esc(d.ava)}</td>
+      <td>${esc(d.state)}</td>
+      <td>${esc(d.county)}</td>
+      <td><span class="pill p-${esc(d.status.toLowerCase().replace(/\s+/g,'-').replace('custom-crush','cc'))}">${esc(d.status)}</span></td>
+      <td>${esc(d.customer)}</td>
       <td class="r">${fmtN(d.tons)}</td>
       <td class="r">$${fmtN(d.ppt)}</td>
       <td class="r">${fmtK(d.revenue)}</td>
@@ -2135,8 +2332,23 @@ async function loadData() {
     setTimeout(hideOverlay, 400);
 
   } catch (err) {
-    console.error(err);
-    showError('Error: ' + err.message + '\n\nMake sure this app registration has Files.Read and Sites.Read.All delegated permissions, and that the redirect URI matches this page URL.');
+    // Full error details intentionally not logged to console in production
+    // Classify error for a helpful but non-leaking message
+    let userMsg = 'Authentication or data load failed.\n\n';
+    if (err.errorCode === 'popup_window_error' || err.errorCode === 'empty_window_error') {
+      userMsg = 'Login popup was blocked. Please allow popups for this site and try again.';
+    } else if (err.errorCode === 'user_cancelled') {
+      userMsg = 'Sign-in was cancelled. Click Refresh to try again.';
+    } else if (err.message?.includes('No data')) {
+      userMsg = 'No data found in the spreadsheet. Check the Allocation tab has rows.';
+    } else if (err.message?.includes('Graph API error 403')) {
+      userMsg = 'Access denied. Ensure your account has read access to this SharePoint file.';
+    } else if (err.message?.includes('Graph API error 401')) {
+      userMsg = 'Authentication expired. Please refresh and sign in again.';
+    } else {
+      userMsg = 'Failed to load dashboard data. Please check your connection and try again.';
+    }
+    showError(userMsg);
   }
 }
 
@@ -2147,17 +2359,52 @@ async function refreshData() {
   await loadData();
 }
 
-// Catch any uncaught errors and show them on the loading screen
+// Catch any uncaught errors and show a generic message.
+// Raw error details (line numbers, stack traces) are not surfaced to the UI.
 window.onerror = function(msg, src, line, col, err) {
   const el = document.getElementById('load-error');
-  if (el) { el.style.display = 'block'; el.textContent = 'JS Error: ' + msg + ' (line ' + line + ')'; }
+  if (el) { el.style.display = 'block'; el.textContent = 'An unexpected error occurred. Please refresh the page.'; }
   const st = document.getElementById('load-status');
-  if (st) st.textContent = 'Script error - see message below';
-  return false;
+  if (st) st.textContent = 'Unexpected error.';
+  return true; // prevent default browser error logging
 };
 window.addEventListener('unhandledrejection', function(e) {
   const el = document.getElementById('load-error');
-  if (el) { el.style.display = 'block'; el.textContent = 'Async Error: ' + (e.reason?.message || e.reason); }
+  if (el) { el.style.display = 'block'; el.textContent = 'An unexpected error occurred. Please refresh the page.'; }
+  e.preventDefault(); // suppress console output of unhandled rejection
+});
+
+// ═══════════════════════════════════════════════════════════
+// MOBILE SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function toggleMobileSidebar() {
+  const sidebar  = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const btn      = document.getElementById('hamburger-btn');
+  const isOpen   = sidebar.classList.contains('mobile-open');
+  if (isOpen) {
+    closeMobileSidebar();
+  } else {
+    sidebar.classList.add('mobile-open');
+    backdrop.classList.add('visible');
+    btn.classList.add('open');
+    document.body.style.overflow = 'hidden'; // prevent body scroll while drawer open
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebar  = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const btn      = document.getElementById('hamburger-btn');
+  sidebar.classList.remove('mobile-open');
+  backdrop.classList.remove('visible');
+  btn.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close sidebar on resize to desktop (avoids stuck-open state)
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) closeMobileSidebar();
 });
 
 // Start
