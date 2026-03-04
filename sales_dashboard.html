@@ -79,30 +79,31 @@ body {
   text-transform: uppercase; color: var(--gold-light);
   margin-bottom: 48px;
 }
-.loading-bar-wrap {
-  width: 280px; height: 2px;
-  background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden;
+.loading-dot-wrap {
+  display: flex; gap: 7px; align-items: center;
+  height: 12px;
 }
-.loading-bar {
-  height: 100%; width: 0%;
-  background: var(--sage);
-  border-radius: 2px;
-  transition: width 0.4s ease;
-  position: relative;
-  overflow: hidden;
+.loading-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold-light);
+  opacity: 0.25;
+  animation: dotpulse 1.4s ease-in-out infinite;
+  transition: background 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
 }
-/* Shimmer sweep */
-.loading-bar::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -60%;
-  width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
-  animation: shimmer 1.2s ease-in-out infinite;
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+.loading-dot:nth-child(4) { animation-delay: 0.6s; }
+.loading-dot:nth-child(5) { animation-delay: 0.8s; }
+.loading-dot.done {
+  background: var(--sage-light);
+  opacity: 1;
+  animation: none;
+  transform: scale(1.2);
 }
-@keyframes shimmer {
-  0%   { left: -60%; }
-  100% { left: 120%; }
+@keyframes dotpulse {
+  0%, 100% { opacity: 0.2; transform: scaleY(1); }
+  50%       { opacity: 1;   transform: scaleY(1.6); }
 }
 .loading-status {
   margin-top: 16px; font-size: 10px;
@@ -833,7 +834,13 @@ footer {
 <div id="loading-overlay">
   <div class="loading-logo">Grapevine Capital</div>
   <div class="loading-sub">2026 Grape Sales Dashboard</div>
-  <div class="loading-bar-wrap"><div class="loading-bar" id="load-bar"></div></div>
+  <div class="loading-dot-wrap" id="load-dots">
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+  </div>
   <div class="loading-status" id="load-status">Connecting to Microsoft 365…</div>
   <div class="loading-error" id="load-error"></div>
 </div>
@@ -1248,8 +1255,11 @@ const chartInstances = {};
 // LOADING UI
 // ═══════════════════════════════════════════════════════════
 function setProgress(pct, msg) {
-  document.getElementById('load-bar').style.width = pct + '%';
   if (msg) document.getElementById('load-status').textContent = msg;
+  if (pct >= 100) {
+    // Turn all dots green on completion
+    document.querySelectorAll('.loading-dot').forEach(d => d.classList.add('done'));
+  }
 }
 function showError(msg) {
   const el = document.getElementById('load-error');
