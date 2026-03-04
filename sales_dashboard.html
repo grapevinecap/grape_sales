@@ -691,19 +691,30 @@ footer {
 /* ════════════════════════════════════════════════════
    SIDEBAR BACKDROP (mobile only)
 ════════════════════════════════════════════════════ */
+/* Body scroll lock when sidebar open — iOS respects touch-action */
+body.sidebar-open {
+  overflow: hidden;
+  touch-action: none;
+  /* Prevent iOS rubber-band scroll on body */
+  position: fixed;
+  width: 100%;
+}
+
 .sidebar-backdrop {
   display: none;
   position: fixed; inset: 0;
   background: rgba(28,23,18,0.55);
   z-index: 149;
   opacity: 0;
-  pointer-events: none;   /* never intercept taps while hidden */
+  pointer-events: none;
+  touch-action: none;     /* block touch scroll on backdrop */
   transition: opacity 0.25s;
 }
 .sidebar-backdrop.visible {
   display: block;
   opacity: 1;
-  pointer-events: auto;   /* only intercept taps when actually open */
+  pointer-events: auto;
+  touch-action: none;
 }
 
 /* ════════════════════════════════════════════════════
@@ -769,6 +780,8 @@ footer {
     box-shadow: none;
     /* Override sticky positioning */
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+    overscroll-behavior: contain;      /* prevent scroll chaining to body */
     padding-top: 24px;
   }
   .sidebar.mobile-open {
@@ -2839,7 +2852,7 @@ function toggleMobileSidebar() {
     backdrop.classList.add('visible');
     document.querySelectorAll('.hamburger').forEach(b => b.classList.add('open'));
     document.getElementById('mob-open-btn')?.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    document.body.classList.add('sidebar-open');
   }
 }
 
@@ -2850,7 +2863,7 @@ function closeMobileSidebar() {
   backdrop.classList.remove('visible');
   document.querySelectorAll('.hamburger').forEach(b => b.classList.remove('open'));
   document.getElementById('mob-open-btn')?.classList.remove('open');
-  document.body.style.overflow = '';
+  document.body.classList.remove('sidebar-open');
 }
 
 // Close sidebar on resize to desktop (avoids stuck-open state)
