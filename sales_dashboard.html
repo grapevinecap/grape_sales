@@ -695,9 +695,6 @@ footer {
 body.sidebar-open {
   overflow: hidden;
   touch-action: none;
-  /* Prevent iOS rubber-band scroll on body */
-  position: fixed;
-  width: 100%;
 }
 
 .sidebar-backdrop {
@@ -2865,6 +2862,16 @@ function closeMobileSidebar() {
   document.getElementById('mob-open-btn')?.classList.remove('open');
   document.body.classList.remove('sidebar-open');
 }
+
+// iOS scroll lock: intercept touchmove at document level.
+// Allow scroll only when touch is inside the sidebar.
+// This is persistent — survives re-renders unlike class-based approaches.
+document.addEventListener('touchmove', function(e) {
+  if (!document.body.classList.contains('sidebar-open')) return;
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.contains(e.target)) return; // allow sidebar scroll
+  e.preventDefault(); // block everything else
+}, { passive: false });
 
 // Close sidebar on resize to desktop (avoids stuck-open state)
 window.addEventListener('resize', () => {
