@@ -656,15 +656,14 @@ footer {
 .hamburger.open span:nth-child(2) { opacity: 0; }
 .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* Fixed hamburger — sits permanently at top-left on mobile */
+/* Hamburger inside sidebar-head — hidden on desktop, visible on mobile */
 .hamburger-fixed {
-  display: none; /* hidden on desktop */
-  position: fixed;
-  top: 12px; left: 12px;
-  z-index: 200; /* above everything including sidebar backdrop */
-  background: var(--ink);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 4px;
+  display: none;
+  background: none;
+  border: 1px solid rgba(28,23,18,0.2);
+}
+.hamburger-fixed span {
+  background: var(--wine); /* dark spans to match sidebar parchment bg */
 }
 
 /* ════════════════════════════════════════════════════
@@ -720,10 +719,8 @@ footer {
     display: flex; align-items: center; gap: 10px;
   }
   .hamburger { display: flex; }
-  .hamburger-fixed { display: flex; } /* show fixed hamburger */
-  #hamburger-btn { display: none; }   /* hide the one in the header */
-  /* Shift header title right to avoid overlapping the fixed hamburger */
-  .header-left { padding-left: 48px; }
+  .hamburger-fixed { display: flex; } /* show inside sidebar */
+  #hamburger-btn { display: none; }   /* hide the one in the header — sidebar btn used instead */
   .header-left h1 { font-size: 18px; }
   .header-left .subtitle { font-size: 8px; margin-top: 3px; }
   .live-badge { display: none; } /* hide on mobile — saves space */
@@ -798,6 +795,13 @@ footer {
   .sidebar-section-head {
     margin: 8px 0 4px;
     padding-top: 8px;
+  }
+  /* When filters is open, hide the Widgets and Charts section heads entirely */
+  .sidebar.filters-open [data-section="widgets"],
+  .sidebar.filters-open [data-section="charts"],
+  .sidebar.filters-open #section-widgets,
+  .sidebar.filters-open #section-charts {
+    display: none;
   }
 
   /* Filter sub-headers (Owner, Status, AVA, etc.) */
@@ -884,19 +888,20 @@ footer {
 </header>
 <!-- Mobile sidebar overlay backdrop -->
 <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
-<!-- Fixed hamburger — always visible on mobile regardless of scroll -->
-<button class="hamburger hamburger-fixed" id="hamburger-fixed" onclick="toggleMobileSidebar()" aria-label="Toggle filters">
-  <span></span><span></span><span></span>
-</button>
 
 <div class="app-body">
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-head">Customize</div>
+    <div class="sidebar-head">
+      <span>Customize</span>
+      <button class="hamburger hamburger-fixed" id="hamburger-fixed" onclick="toggleMobileSidebar()" aria-label="Close filters">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
 
     <!-- Collapsible: Widgets (collapsed by default) -->
-    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('widgets')" style="border-top:none;padding-top:0;margin-top:0;">
+    <div class="sidebar-section-head collapsible-head" data-section="widgets" onclick="toggleSection('widgets')" style="border-top:none;padding-top:0;margin-top:0;">
       <span>Widgets</span><span class="collapse-arrow" id="arrow-widgets">▲</span>
     </div>
     <div class="collapsible-body" id="section-widgets">
@@ -908,7 +913,7 @@ footer {
     </div>
 
     <!-- Collapsible: Charts (collapsed by default) -->
-    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('charts')">
+    <div class="sidebar-section-head collapsible-head" data-section="charts" onclick="toggleSection('charts')">
       <span>Charts</span><span class="collapse-arrow" id="arrow-charts">▲</span>
     </div>
     <div class="collapsible-body" id="section-charts">
@@ -1913,6 +1918,9 @@ function toggleSection(id) {
     });
     body.classList.add('open');
     if (arrow) arrow.classList.add('open');
+    // On mobile: toggle .filters-open on sidebar to hide/show widgets+charts heads
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.toggle('filters-open', id === 'filters');
     // After transition finishes, resize any open sub-filter selects
     // (charts section may have changed available height)
     setTimeout(resizeOpenSelects, 340);
@@ -1928,6 +1936,10 @@ function toggleSection(id) {
     }
     body.classList.remove('open');
     if (arrow) arrow.classList.remove('open');
+    // Remove filters-open if we just closed filters
+    if (id === 'filters') {
+      document.getElementById('sidebar')?.classList.remove('filters-open');
+    }
   }
 }
 
