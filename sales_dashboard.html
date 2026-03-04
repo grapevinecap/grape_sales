@@ -85,9 +85,24 @@ body {
 }
 .loading-bar {
   height: 100%; width: 0%;
-  background: linear-gradient(90deg, var(--wine-light), var(--gold-light));
+  background: var(--sage);
   border-radius: 2px;
   transition: width 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+/* Shimmer sweep */
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%   { left: -60%; }
+  100% { left: 120%; }
 }
 .loading-status {
   margin-top: 16px; font-size: 10px;
