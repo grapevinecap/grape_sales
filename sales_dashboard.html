@@ -1145,10 +1145,6 @@ footer {
                   <th data-col="varietal">Varietal</th>
                   <th data-col="status">Status</th>
                   <th data-col="customer">Customer</th>
-                  <th data-col="owner">Owner</th>
-                  <th data-col="ava">AVA</th>
-                  <th data-col="state">State</th>
-                  <th data-col="county">County</th>
                   <th data-col="acres" class="r">Acres</th>
                   <th data-col="tons" class="r">Tons</th>
                   <th data-col="ppt" class="r">$/Ton</th>
@@ -1159,6 +1155,10 @@ footer {
                   <th data-col="graftYear" class="r">Graft Yr</th>
                   <th data-col="clone">Clone</th>
                   <th data-col="rootstock">Rootstock</th>
+                  <th data-col="owner">Owner</th>
+                  <th data-col="ava">AVA</th>
+                  <th data-col="state">State</th>
+                  <th data-col="county">County</th>
                 </tr>
               </thead>
               <tbody id="tbl-body"></tbody>
@@ -2514,14 +2514,14 @@ function render_table(data) {
   const totalRow = `
     <tr style="background:var(--parchment2);font-weight:500;border-top:2px solid var(--border);">
       <td><em>Total</em></td>
-      <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+      <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
       <td class="r">${fmtN(totAcres)}</td>
       <td class="r">${fmtN(totTons)}</td>
       <td class="r">$${fmtN(totWtdPPT)}</td>
       <td class="r">${fmtK(totRev)}</td>
       <td class="r">${totTPA > 0 ? totTPA.toFixed(1) : '—'}</td>
-      <td class="r">—</td>
-      <td class="r">—</td><td class="r">—</td><td>—</td><td>—</td>
+      <td class="r">—</td><td class="r">—</td><td class="r">—</td><td>—</td><td>—</td>
+      <td>—</td><td>—</td><td>—</td>
     </tr>`;
 
   document.getElementById('tbl-body').innerHTML = tableData.map(d=>`
@@ -2531,10 +2531,6 @@ function render_table(data) {
       <td>${esc(d.varietal)}</td>
       <td><span class="pill p-${esc(d.status.toLowerCase().replace(/\s+/g,'-').replace('custom-crush','cc'))}">${esc(d.status)}</span></td>
       <td>${esc(d.customer)}</td>
-      <td>${esc(d.owner)}</td>
-      <td>${esc(d.ava)}</td>
-      <td>${esc(d.state)}</td>
-      <td>${esc(d.county)}</td>
       <td class="r">${fmtN(d.acres)}</td>
       <td class="r">${fmtN(d.tons)}</td>
       <td class="r">$${fmtN(d.ppt)}</td>
@@ -2545,6 +2541,10 @@ function render_table(data) {
       <td class="r">${d.graftYear??'—'}</td>
       <td>${esc(d.clone??'—')}</td>
       <td>${esc(d.rootstock??'—')}</td>
+      <td>${esc(d.owner)}</td>
+      <td>${esc(d.ava)}</td>
+      <td>${esc(d.state)}</td>
+      <td>${esc(d.county)}</td>
     </tr>`).join('') + totalRow;
 
   document.getElementById('tbl-badge').textContent  = `${fmtN(tableData.length)} Records`;
