@@ -882,6 +882,48 @@ body.sidebar-open {
 }
 
 /* ════════════════════════════════════════════════════
+   BREAKPOINT: IPAD  769px–1366px + coarse pointer
+   Targets iPad (portrait and landscape, all sizes)
+   without affecting iPhone (≤768px) or desktop mouse.
+════════════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1366px) and (pointer: coarse) {
+
+  /* Section heads: Widgets / Charts / Filters */
+  .sidebar-section-head {
+    padding: 16px 0;
+    font-size: 11px;
+  }
+  .collapsible-head {
+    min-height: 52px;
+    padding: 0;
+  }
+
+  /* Filter sub-headers: Owner, Status, AVA, etc. */
+  .sf-head {
+    padding: 16px 0;
+    min-height: 52px;
+  }
+
+  /* Widget + Chart visibility toggle buttons */
+  .vis-btn {
+    padding: 14px 12px;
+    font-size: 12px;
+    min-height: 52px;
+    margin-bottom: 8px;
+  }
+
+  /* Checkbox list items in filter panels */
+  .sf-checklist label {
+    padding: 14px 10px;
+    font-size: 13px;
+    min-height: 52px;
+  }
+  .sf-checklist input[type="checkbox"] {
+    width: 22px; height: 22px;
+  }
+}
+
+/* ════════════════════════════════════════════════════
    BREAKPOINT: SMALL PHONE  ≤ 480px
    KPIs go single column for very narrow screens
 ════════════════════════════════════════════════════ */
