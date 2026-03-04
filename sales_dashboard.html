@@ -882,11 +882,15 @@ body.sidebar-open {
 }
 
 /* ════════════════════════════════════════════════════
-   BREAKPOINT: IPAD  769px–1366px + coarse pointer
-   Targets iPad (portrait and landscape, all sizes)
-   without affecting iPhone (≤768px) or desktop mouse.
+   IPAD SIDEBAR TOUCH TARGETS
+   Uses pointer:coarse (no width bounds) to target any
+   touch-primary device larger than a phone.
+   The ≤768px phone block takes priority for phones.
+   JS .is-ipad-touch class handles Magic Keyboard iPads
+   (which report pointer:fine when keyboard attached).
 ════════════════════════════════════════════════════ */
-@media (min-width: 769px) and (max-width: 1366px) and (pointer: coarse) {
+@media (pointer: coarse) and (min-width: 769px),
+       (pointer: fine)   and (min-width: 769px) and (any-pointer: coarse) {
 
   /* Section heads: Widgets / Charts / Filters */
   .sidebar-section-head {
@@ -922,6 +926,14 @@ body.sidebar-open {
     width: 22px; height: 22px;
   }
 }
+
+/* JS fallback: .is-ipad-touch added by script for Magic Keyboard iPads */
+.is-ipad-touch .sidebar-section-head { padding: 16px 0; font-size: 11px; }
+.is-ipad-touch .collapsible-head      { min-height: 52px; padding: 0; }
+.is-ipad-touch .sf-head               { padding: 16px 0; min-height: 52px; }
+.is-ipad-touch .vis-btn               { padding: 14px 12px; font-size: 12px; min-height: 52px; margin-bottom: 8px; }
+.is-ipad-touch .sf-checklist label    { padding: 14px 10px; font-size: 13px; min-height: 52px; }
+.is-ipad-touch .sf-checklist input[type="checkbox"] { width: 22px; height: 22px; }
 
 /* ════════════════════════════════════════════════════
    BREAKPOINT: SMALL PHONE  ≤ 480px
@@ -1604,6 +1616,17 @@ const IS_TOUCH = (
   window.matchMedia('(hover: none) and (pointer: coarse)').matches ||
   ('ontouchstart' in window && navigator.maxTouchPoints > 1)
 );
+
+// Detect iPad specifically (touch device wider than a phone).
+// Covers iPad with Magic Keyboard which reports pointer:fine.
+// maxTouchPoints > 1 is true on all iPads regardless of keyboard.
+const IS_IPAD = IS_TOUCH && window.innerWidth > 768;
+if (IS_IPAD) {
+  // Apply class to sidebar so CSS fallback rules activate
+  // (handles Magic Keyboard iPads where pointer:coarse media query may not fire)
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.add('is-ipad-touch');
+}
 
 // Hide the native <select multiple> elements on touch devices immediately —
 // more reliable than a CSS media query which iPads with keyboards can bypass
