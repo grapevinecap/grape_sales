@@ -505,7 +505,7 @@ header {
 .sidebar-section-head {
   font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--dust); font-weight: 600;
-  margin: 0; padding: 8px 0;
+  margin: 0; padding: 5px 0;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -833,10 +833,10 @@ body.sidebar-open {
    MOBILE SIDEBAR: larger touch targets for tappable items
 ════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Tighten section head margins on mobile */
+  /* Match section head height to sf-head touch target */
   .sidebar-section-head {
     margin: 0;
-    padding: 8px 0;
+    padding: 13px 0;
   }
   /* When filters is open, hide the entire Widgets and Charts groups */
   .sidebar.filters-open #section-group-widgets,
@@ -870,11 +870,9 @@ body.sidebar-open {
   /* Widgets / Charts / Filters section headers */
   .collapsible-head {
     min-height: 44px;
-    padding: 4px 0;
+    padding: 0;  /* padding comes from sidebar-section-head */
   }
   .sidebar-section-head {
-    padding-top: 14px;
-    margin: 16px 0 10px;
     font-size: 10px;
   }
 
@@ -1684,10 +1682,10 @@ function onChecklistChange(sfName) {
   const allCb = cl.querySelector('input[value="__all__"]');
   const others = [...cl.querySelectorAll('input[type="checkbox"]')].filter(cb => cb.value !== '__all__');
   const anyOther = others.some(cb => cb.checked);
-  // If any specific item is checked, uncheck "All"; if none, check "All"
   if (allCb) allCb.checked = !anyOther;
   updateFilterOptions();
   renderDashboard();
+  savePrefs();
 }
 
 // Initial population (first load — no cascading yet)
@@ -1884,6 +1882,7 @@ function setToggle(chart, val) {
   // Re-render only the chart whose toggle changed
   const fn = TOGGLE_RENDER_MAP[chart];
   if (fn) fn();
+  savePrefs();
 }
 
 // ── CHART VISIBILITY ──────────────────────────────────────
@@ -1916,6 +1915,7 @@ function toggleWidget(id) {
   const btn = document.getElementById('vis-kpi-' + id);
   if (btn) btn.classList.toggle('hidden-chart', !KPI_VISIBLE[id]);
   updateKpiGrid();
+  savePrefs();
 }
 
 function updateKpiGrid() {
@@ -1942,8 +1942,8 @@ function toggleChart(id) {
   const btn  = document.getElementById('vis-' + id);
   if (slot) slot.classList.toggle('slot-hidden', !CHART_VISIBLE[id]);
   if (btn)  btn.classList.toggle('hidden-chart', !CHART_VISIBLE[id]);
-  // After hiding/showing, resize remaining charts
   setTimeout(renderDashboard, 50);
+  savePrefs();
 }
 
 // ── COLLAPSIBLE TOP SECTIONS ─────────────────────────────
@@ -2639,14 +2639,14 @@ function render_table(data) {
   const totalRow = `
     <tr style="background:var(--parchment2);font-weight:500;border-top:2px solid var(--border);">
       <td><em>Total</em></td>
-      <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+      <td></td><td></td><td></td><td></td>
       <td class="r">${fmtN(totAcres)}</td>
       <td class="r">${fmtN(totTons)}</td>
       <td class="r">$${fmtN(totWtdPPT)}</td>
       <td class="r">${fmtK(totRev)}</td>
-      <td class="r">${totTPA > 0 ? totTPA.toFixed(1) : '—'}</td>
-      <td class="r">—</td><td class="r">—</td><td class="r">—</td><td>—</td><td>—</td>
-      <td>—</td><td>—</td><td>—</td>
+      <td class="r">${totTPA > 0 ? totTPA.toFixed(1) : ''}</td>
+      <td class="r"></td><td class="r"></td><td class="r"></td><td></td><td></td>
+      <td></td><td></td><td></td><td></td>
     </tr>`;
 
   document.getElementById('tbl-body').innerHTML = tableData.map(d=>`
@@ -2697,8 +2697,9 @@ const FILTER_IDS = ['f-owner','f-status','f-state','f-county','f-ava','f-vineyar
 
 FILTER_IDS.forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
-    updateFilterOptions();  // cascade — trim other dropdowns
-    renderDashboard();      // redraw charts + table
+    updateFilterOptions();
+    renderDashboard();
+    savePrefs();
   });
 });
 
@@ -2727,6 +2728,7 @@ function doReset() {
   openSubFilter = null;
   buildFilters();
   renderDashboard();
+  try { localStorage.removeItem(PREF_KEY); } catch(e) {}
 }
 document.getElementById('reset-btn-top').addEventListener('click', doReset);
 
@@ -2746,6 +2748,8 @@ async function loadData() {
 
     setProgress(90, 'Building dashboard…');
     buildFilters();
+    restoreFilterSelections();  // apply saved filter state after options are built
+    updateFilterOptions();      // cascade to trim options based on restored selections
     applyInitialVisibility();
     renderDashboard();
     updateKpiGrid();
@@ -2891,7 +2895,101 @@ window.addEventListener('resize', () => {
   if (window.innerWidth > 768) closeMobileSidebar();
 });
 
+// ═══════════════════════════════════════════════════════════
+// PREFERENCE PERSISTENCE (localStorage)
+// ═══════════════════════════════════════════════════════════
+const PREF_KEY = 'kylix_dash_prefs_v1';
+
+function savePrefs() {
+  try {
+    // Collect current filter selections
+    const filters = {};
+    FILTER_IDS.forEach(id => {
+      const sfName = id.replace('f-', '');
+      const sel = IS_TOUCH ? [...getSelectedFromChecklist(sfName)] : 
+        Array.from(document.getElementById(id).selectedOptions)
+          .map(o => o.value).filter(v => v !== '__all__');
+      if (sel.length > 0) filters[sfName] = sel;
+    });
+
+    const prefs = {
+      kpiVisible:   { ...KPI_VISIBLE },
+      chartVisible: { ...CHART_VISIBLE },
+      toggles:      { ...TOGGLES },
+      filters,
+    };
+    localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+  } catch(e) { /* localStorage unavailable — fail silently */ }
+}
+
+function loadPrefs() {
+  try {
+    const raw = localStorage.getItem(PREF_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+
+    // Restore widget visibility
+    if (prefs.kpiVisible) {
+      Object.assign(KPI_VISIBLE, prefs.kpiVisible);
+    }
+    // Restore chart visibility
+    if (prefs.chartVisible) {
+      Object.assign(CHART_VISIBLE, prefs.chartVisible);
+    }
+    // Restore chart toggles
+    if (prefs.toggles) {
+      Object.assign(TOGGLES, prefs.toggles);
+      // Re-apply toggle button active states
+      Object.entries(TOGGLES).forEach(([chart, val]) => {
+        if (chart === 'avaPct') {
+          document.getElementById('tog-ava-pct')?.classList.toggle('active', val);
+        } else {
+          document.querySelectorAll(`[id^="tog-${chart}-"]`).forEach(btn => {
+            btn.classList.toggle('active', btn.id === `tog-${chart}-${val}`);
+          });
+        }
+      });
+    }
+    // Filter selections restored after buildFilters() via restoreFilterSelections()
+    window._savedFilterPrefs = prefs.filters || {};
+  } catch(e) { /* corrupt prefs — ignore */ }
+}
+
+function restoreFilterSelections() {
+  const saved = window._savedFilterPrefs;
+  if (!saved || Object.keys(saved).length === 0) return;
+
+  FILTER_IDS.forEach(id => {
+    const sfName = id.replace('f-', '');
+    const vals = saved[sfName];
+    if (!vals || vals.length === 0) return;
+    const valSet = new Set(vals);
+
+    // Restore native select
+    const sel = document.getElementById(id);
+    let anySelected = false;
+    Array.from(sel.options).forEach(o => {
+      o.selected = valSet.has(o.value);
+      if (o.selected) anySelected = true;
+    });
+    sel.options[0].selected = !anySelected;
+
+    // Restore checkbox list
+    const cl = document.getElementById('cl-' + sfName);
+    if (cl) {
+      const allCb = cl.querySelector('input[value="__all__"]');
+      cl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (cb.value === '__all__') return;
+        cb.checked = valSet.has(cb.value);
+        if (cb.checked) anySelected = true;
+      });
+      if (allCb) allCb.checked = !anySelected;
+    }
+  });
+}
+
 // Start
+loadPrefs();   // restore KPI/chart/toggle state before first render
 loadData();
 
 // Auto-refresh every 15 minutes
