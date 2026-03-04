@@ -671,7 +671,7 @@ footer {
   display: none; /* hidden on desktop */
   position: fixed;
   top: 10px; left: 10px;
-  z-index: 98; /* below header (99) but above content */
+  z-index: 101; /* above sticky header (z-index:100) */
   width: 36px; height: 36px;
   flex-direction: column; justify-content: center; align-items: center;
   gap: 5px; padding: 0;
@@ -828,6 +828,12 @@ footer {
   .sidebar.filters-open #section-group-widgets,
   .sidebar.filters-open #section-group-charts {
     display: none;
+  }
+  /* Remove the Filters section-head top border/margin when it's the first item */
+  .sidebar.filters-open [onclick="toggleSection('filters')"] {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0;
   }
 
   /* Filter sub-headers (Owner, Status, AVA, etc.) */
