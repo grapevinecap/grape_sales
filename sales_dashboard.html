@@ -1293,7 +1293,10 @@ body.sidebar-open {
       <div class="card">
         <div class="card-head">
           <div class="card-title">Block Detail</div>
-          <div class="card-badge" id="tbl-badge">— Records</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="tog" id="clear-sort-btn" onclick="clearSort()" style="display:none;">✕ Clear Sort</button>
+            <div class="card-badge" id="tbl-badge">— Records</div>
+          </div>
         </div>
         <div class="card-body" style="padding:0">
           <div class="tbl-wrap">
@@ -2745,6 +2748,19 @@ function render_table(data) {
 // ═══════════════════════════════════════════════════════════
 // TABLE SORT
 // ═══════════════════════════════════════════════════════════
+function updateClearSortBtn() {
+  const btn = document.getElementById('clear-sort-btn');
+  if (btn) btn.style.display = sortCol ? '' : 'none';
+}
+
+function clearSort() {
+  sortCol = null; sortDir = 1;
+  document.querySelectorAll('#tbl-head th').forEach(t => t.classList.remove('asc','desc'));
+  updateClearSortBtn();
+  updateClearSortBtn();
+  render_table(getFilteredData());
+}
+
 document.getElementById('tbl-head').addEventListener('click', e => {
   const th = e.target.closest('th');
   if (!th) return;
@@ -2752,6 +2768,7 @@ document.getElementById('tbl-head').addEventListener('click', e => {
   if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
   document.querySelectorAll('#tbl-head th').forEach(t => t.classList.remove('asc','desc'));
   th.classList.add(sortDir===1?'asc':'desc');
+  updateClearSortBtn();
   renderDashboard();
 });
 
@@ -2783,6 +2800,7 @@ function doReset() {
   });
   sortCol = null; sortDir = 1;
   document.querySelectorAll('#tbl-head th').forEach(t => t.classList.remove('asc','desc'));
+  updateClearSortBtn();
   // Collapse all open sub-filters
   SF_ORDER.forEach(name => {
     const body  = document.getElementById('sf-body-' + name);
