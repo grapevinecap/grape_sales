@@ -710,17 +710,20 @@ footer {
   .content { overflow-y: visible; flex: none; }
   /* footer mobile styles handled in block above */
 
-  /* Header: show hamburger, compress layout */
+  /* Header: show hamburger, compress layout — sticky so it never scrolls away */
   header {
     padding: 14px 16px 12px;
     gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 99;
   }
   .header-left {
     display: flex; align-items: center; gap: 10px;
   }
   .hamburger { display: flex; }
-  .hamburger-fixed { display: flex; } /* show inside sidebar */
-  #hamburger-btn { display: none; }   /* hide the one in the header — sidebar btn used instead */
+  .hamburger-fixed { display: flex; } /* show inside sidebar as close button */
+  /* #hamburger-btn in header stays visible as the open trigger */
   .header-left h1 { font-size: 18px; }
   .header-left .subtitle { font-size: 8px; margin-top: 3px; }
   .live-badge { display: none; } /* hide on mobile — saves space */
