@@ -178,6 +178,11 @@ header {
   padding: 5px 0 5px 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0;
+  /* Sticky positioning kicks in when .open is on the sibling .sf-body */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--parchment); /* match sidebar bg so it covers content beneath */
 }
 .sf-head:hover .sf-label { color: var(--wine); }
 .sf-label {
@@ -763,6 +768,7 @@ footer {
   .sf-head {
     padding: 13px 0;
     min-height: 44px;
+    background: var(--parchment); /* ensure opaque when sticky */
   }
 
   /* Widget + Chart toggle buttons */
@@ -1137,12 +1143,12 @@ footer {
                   <th data-col="vineyard">Vineyard</th>
                   <th data-col="block">Block</th>
                   <th data-col="varietal">Varietal</th>
+                  <th data-col="status">Status</th>
+                  <th data-col="customer">Customer</th>
                   <th data-col="owner">Owner</th>
                   <th data-col="ava">AVA</th>
                   <th data-col="state">State</th>
                   <th data-col="county">County</th>
-                  <th data-col="status">Status</th>
-                  <th data-col="customer">Customer</th>
                   <th data-col="acres" class="r">Acres</th>
                   <th data-col="tons" class="r">Tons</th>
                   <th data-col="ppt" class="r">$/Ton</th>
@@ -2523,12 +2529,12 @@ function render_table(data) {
       <td>${esc(d.vineyard)}</td>
       <td>${esc(d.block)||'—'}</td>
       <td>${esc(d.varietal)}</td>
+      <td><span class="pill p-${esc(d.status.toLowerCase().replace(/\s+/g,'-').replace('custom-crush','cc'))}">${esc(d.status)}</span></td>
+      <td>${esc(d.customer)}</td>
       <td>${esc(d.owner)}</td>
       <td>${esc(d.ava)}</td>
       <td>${esc(d.state)}</td>
       <td>${esc(d.county)}</td>
-      <td><span class="pill p-${esc(d.status.toLowerCase().replace(/\s+/g,'-').replace('custom-crush','cc'))}">${esc(d.status)}</span></td>
-      <td>${esc(d.customer)}</td>
       <td class="r">${fmtN(d.acres)}</td>
       <td class="r">${fmtN(d.tons)}</td>
       <td class="r">$${fmtN(d.ppt)}</td>
