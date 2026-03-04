@@ -194,11 +194,14 @@ header {
   padding: 5px 0 5px 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 0;
-  /* Sticky positioning kicks in when .open is on the sibling .sf-body */
+  background: var(--parchment);
+}
+/* Only the currently open sub-filter head sticks to the top */
+.sf-head.sf-head-open {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--parchment); /* match sidebar bg so it covers content beneath */
+  background: var(--parchment);
 }
 .sf-head:hover .sf-label { color: var(--wine); }
 .sf-label {
@@ -501,8 +504,9 @@ header {
 /* ── SIDEBAR CHART VISIBILITY ── */
 .sidebar-section-head {
   font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--dust); margin: 14px 0 8px;
-  border-top: 1px solid var(--border); padding-top: 12px;
+  color: var(--dust); font-weight: 600;
+  margin: 0; padding: 8px 0;
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 .vis-btn {
@@ -829,10 +833,10 @@ body.sidebar-open {
    MOBILE SIDEBAR: larger touch targets for tappable items
 ════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Tighten section head margins so collapsed sections waste no vertical space */
+  /* Tighten section head margins on mobile */
   .sidebar-section-head {
-    margin: 8px 0 4px;
-    padding-top: 8px;
+    margin: 0;
+    padding: 8px 0;
   }
   /* When filters is open, hide the entire Widgets and Charts groups */
   .sidebar.filters-open #section-group-widgets,
@@ -850,7 +854,9 @@ body.sidebar-open {
   .sf-head {
     padding: 13px 0;
     min-height: 44px;
-    background: var(--parchment); /* ensure opaque when sticky */
+  }
+  .sf-head.sf-head-open {
+    background: var(--parchment);
   }
 
   /* Widget + Chart toggle buttons */
@@ -864,7 +870,7 @@ body.sidebar-open {
   /* Widgets / Charts / Filters section headers */
   .collapsible-head {
     min-height: 44px;
-    padding: 10px 0;
+    padding: 4px 0;
   }
   .sidebar-section-head {
     padding-top: 14px;
@@ -949,7 +955,7 @@ body.sidebar-open {
 
     <!-- Collapsible: Widgets (collapsed by default) -->
     <div id="section-group-widgets">
-    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('widgets')" style="border-top:none;padding-top:0;margin-top:0;">
+    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('widgets')" style="border-top:none;">
       <span>Widgets</span><span class="collapse-arrow" id="arrow-widgets">▲</span>
     </div>
     <div class="collapsible-body" id="section-widgets">
@@ -2010,12 +2016,19 @@ function toggleSubFilter(name) {
     const pa = document.getElementById('sf-arrow-' + openSubFilter);
     if (pb) pb.classList.remove('open');
     if (pa) pa.classList.remove('open');
+    // Remove sticky from the previously open head
+    const prevHead = pb?.previousElementSibling;
+    if (prevHead) prevHead.classList.remove('sf-head-open');
   }
 
   const opening = !body.classList.contains('open');
   body.classList.toggle('open', opening);
   if (arrow) arrow.classList.toggle('open', opening);
   openSubFilter = opening ? name : null;
+
+  // Apply/remove sticky on this head
+  const head = body.previousElementSibling;
+  if (head) head.classList.toggle('sf-head-open', opening);
 
   if (opening) {
     setTimeout(() => resizeSelect(name), 50);
