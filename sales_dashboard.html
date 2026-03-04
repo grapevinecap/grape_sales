@@ -1441,8 +1441,23 @@ function parseRows(values) {
 // removes options that are no longer in the valid set;
 // adds new options that weren't present before.
 // Always keeps the "All" sentinel at index 0.
-// Detect touch-primary device once
-const IS_TOUCH = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+// Detect touch device: check both media query AND touch event support
+// Media query alone misses iPads with keyboards (which report hover:hover)
+const IS_TOUCH = (
+  window.matchMedia('(hover: none) and (pointer: coarse)').matches ||
+  ('ontouchstart' in window && navigator.maxTouchPoints > 1)
+);
+
+// Hide the native <select multiple> elements on touch devices immediately —
+// more reliable than a CSS media query which iPads with keyboards can bypass
+if (IS_TOUCH) {
+  document.querySelectorAll('.sf-body select[multiple]').forEach(sel => {
+    sel.style.display = 'none';
+  });
+  document.querySelectorAll('.sf-checklist').forEach(cl => {
+    cl.style.display = 'flex';
+  });
+}
 
 function syncSelect(id, validValues, isCustomer) {
   const sel = document.getElementById(id);
@@ -1479,6 +1494,14 @@ function syncSelect(id, validValues, isCustomer) {
 
   // ── Update checkbox list (used on touch devices) ──
   syncChecklist(sfName, sorted, prevSelected, validSet);
+
+  // On touch devices, keep select hidden and checklist visible
+  // (re-apply after every sync in case DOM rebuild reset styles)
+  if (IS_TOUCH) {
+    sel.style.display = 'none';
+    const cl = document.getElementById('cl-' + sfName);
+    if (cl) cl.style.display = 'flex';
+  }
 
   // Resize open sub-panel
   if (openSubFilter === sfName) {
