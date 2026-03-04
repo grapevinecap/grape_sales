@@ -663,8 +663,30 @@ footer {
   border: 1px solid rgba(28,23,18,0.2);
 }
 .hamburger-fixed span {
-  background: var(--wine); /* dark spans to match sidebar parchment bg */
+  background: var(--wine);
 }
+
+/* Fixed open button — always visible at top-left on mobile */
+.mob-open-btn {
+  display: none; /* hidden on desktop */
+  position: fixed;
+  top: 10px; left: 10px;
+  z-index: 98; /* below header (99) but above content */
+  width: 36px; height: 36px;
+  flex-direction: column; justify-content: center; align-items: center;
+  gap: 5px; padding: 0;
+  background: var(--ink);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.mob-open-btn span {
+  display: block; width: 18px; height: 2px;
+  background: rgba(255,255,255,0.75); border-radius: 2px;
+  transition: all 0.25s;
+}
+/* Hide when sidebar is open (sidebar's own X button takes over) */
+.mob-open-btn.open { display: none !important; }
 
 /* ════════════════════════════════════════════════════
    SIDEBAR BACKDROP (mobile only)
@@ -722,8 +744,11 @@ footer {
     display: flex; align-items: center; gap: 10px;
   }
   .hamburger { display: flex; }
-  .hamburger-fixed { display: flex; } /* show inside sidebar as close button */
-  /* #hamburger-btn in header stays visible as the open trigger */
+  .hamburger-fixed { display: flex; } /* close button inside sidebar */
+  #hamburger-btn { display: none; }   /* hide header btn — mob-open-btn used instead */
+  .mob-open-btn { display: flex; }    /* fixed open button always visible */
+  /* Pad header left so title doesn't sit under the fixed button */
+  .header-left { padding-left: 48px; }
   .header-left h1 { font-size: 18px; }
   .header-left .subtitle { font-size: 8px; margin-top: 3px; }
   .live-badge { display: none; } /* hide on mobile — saves space */
@@ -799,11 +824,9 @@ footer {
     margin: 8px 0 4px;
     padding-top: 8px;
   }
-  /* When filters is open, hide the Widgets and Charts section heads entirely */
-  .sidebar.filters-open [data-section="widgets"],
-  .sidebar.filters-open [data-section="charts"],
-  .sidebar.filters-open #section-widgets,
-  .sidebar.filters-open #section-charts {
+  /* When filters is open, hide the entire Widgets and Charts groups */
+  .sidebar.filters-open #section-group-widgets,
+  .sidebar.filters-open #section-group-charts {
     display: none;
   }
 
@@ -857,6 +880,11 @@ footer {
 </head>
 <body>
 
+<!-- Fixed hamburger open button — always visible on mobile, outside scroll flow -->
+<button class="mob-open-btn" id="mob-open-btn" onclick="toggleMobileSidebar()" aria-label="Open filters">
+  <span></span><span></span><span></span>
+</button>
+
 <!-- LOADING OVERLAY -->
 <div id="loading-overlay">
   <div class="loading-logo">Grapevine Capital</div>
@@ -904,7 +932,8 @@ footer {
     </div>
 
     <!-- Collapsible: Widgets (collapsed by default) -->
-    <div class="sidebar-section-head collapsible-head" data-section="widgets" onclick="toggleSection('widgets')" style="border-top:none;padding-top:0;margin-top:0;">
+    <div id="section-group-widgets">
+    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('widgets')" style="border-top:none;padding-top:0;margin-top:0;">
       <span>Widgets</span><span class="collapse-arrow" id="arrow-widgets">▲</span>
     </div>
     <div class="collapsible-body" id="section-widgets">
@@ -914,9 +943,11 @@ footer {
       <button class="vis-btn" id="vis-kpi-ppt"   onclick="toggleWidget('ppt')">  <span class="vis-dot"></span>Wtd. Avg $/Ton</button>
       <button class="vis-btn" id="vis-kpi-tpa"   onclick="toggleWidget('tpa')">  <span class="vis-dot"></span>Wtd. Avg Tons/Acre</button>
     </div>
+    </div>
 
     <!-- Collapsible: Charts (collapsed by default) -->
-    <div class="sidebar-section-head collapsible-head" data-section="charts" onclick="toggleSection('charts')">
+    <div id="section-group-charts">
+    <div class="sidebar-section-head collapsible-head" onclick="toggleSection('charts')">
       <span>Charts</span><span class="collapse-arrow" id="arrow-charts">▲</span>
     </div>
     <div class="collapsible-body" id="section-charts">
@@ -927,6 +958,7 @@ footer {
       <button class="vis-btn" id="vis-var"   onclick="toggleChart('var')">  <span class="vis-dot"></span>Revenue by Varietal</button>
       <button class="vis-btn" id="vis-term"  onclick="toggleChart('term')"> <span class="vis-dot"></span>Contract Term</button>
       <button class="vis-btn" id="vis-cust"  onclick="toggleChart('cust')"> <span class="vis-dot"></span>Revenue by Customer</button>
+    </div>
     </div>
 
     <!-- Collapsible: Filters (collapsed by default) -->
@@ -2800,6 +2832,7 @@ function toggleMobileSidebar() {
     sidebar.classList.add('mobile-open');
     backdrop.classList.add('visible');
     document.querySelectorAll('.hamburger').forEach(b => b.classList.add('open'));
+    document.getElementById('mob-open-btn')?.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
 }
@@ -2810,6 +2843,7 @@ function closeMobileSidebar() {
   sidebar.classList.remove('mobile-open');
   backdrop.classList.remove('visible');
   document.querySelectorAll('.hamburger').forEach(b => b.classList.remove('open'));
+  document.getElementById('mob-open-btn')?.classList.remove('open');
   document.body.style.overflow = '';
 }
 
