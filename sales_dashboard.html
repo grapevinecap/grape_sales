@@ -190,6 +190,36 @@ header {
   transition: transform 0.18s; display: inline-block;
 }
 .sf-arrow.open { transform: rotate(180deg); }
+/* ── MOBILE FILTER CHECKBOX LIST ── */
+/* On touch devices, replace <select multiple> with a checkbox list */
+.sf-checklist {
+  display: none; /* hidden on desktop */
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
+}
+.sf-checklist label {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 8px;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--ink); cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  min-height: 44px;
+  user-select: none;
+}
+.sf-checklist label:last-child { border-bottom: none; }
+.sf-checklist input[type="checkbox"] {
+  width: 18px; height: 18px; flex-shrink: 0;
+  accent-color: var(--wine); cursor: pointer;
+}
+.sf-checklist label.all-option {
+  color: var(--dust); font-style: italic;
+}
+@media (hover: none) and (pointer: coarse) {
+  .sf-body select[multiple] { display: none; }
+  .sf-checklist { display: flex; }
+}
+
 .sf-body {
   overflow: hidden;
   max-height: 0;
@@ -853,6 +883,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-owner">
         <select id="f-owner" multiple><option value="__all__" selected>All Owners</option></select>
+        <div class="sf-checklist" id="cl-owner"><label class="all-option"><input type="checkbox" id="cl-owner-all" value="__all__" checked> All Owners</label></div>
       </div>
 
       <!-- Sub-filter: Status -->
@@ -862,6 +893,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-status">
         <select id="f-status" multiple><option value="__all__" selected>All Statuses</option></select>
+        <div class="sf-checklist" id="cl-status"><label class="all-option"><input type="checkbox" id="cl-status-all" value="__all__" checked> All Statuses</label></div>
       </div>
 
       <!-- Sub-filter: State -->
@@ -871,6 +903,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-state">
         <select id="f-state" multiple><option value="__all__" selected>All States</option></select>
+        <div class="sf-checklist" id="cl-state"><label class="all-option"><input type="checkbox" id="cl-state-all" value="__all__" checked> All States</label></div>
       </div>
 
       <!-- Sub-filter: County -->
@@ -880,6 +913,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-county">
         <select id="f-county" multiple><option value="__all__" selected>All Counties</option></select>
+        <div class="sf-checklist" id="cl-county"><label class="all-option"><input type="checkbox" id="cl-county-all" value="__all__" checked> All Counties</label></div>
       </div>
 
       <!-- Sub-filter: AVA -->
@@ -889,6 +923,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-ava">
         <select id="f-ava" multiple><option value="__all__" selected>All AVAs</option></select>
+        <div class="sf-checklist" id="cl-ava"><label class="all-option"><input type="checkbox" id="cl-ava-all" value="__all__" checked> All AVAs</label></div>
       </div>
 
       <!-- Sub-filter: Vineyard -->
@@ -898,6 +933,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-vineyard">
         <select id="f-vineyard" multiple><option value="__all__" selected>All Vineyards</option></select>
+        <div class="sf-checklist" id="cl-vineyard"><label class="all-option"><input type="checkbox" id="cl-vineyard-all" value="__all__" checked> All Vineyards</label></div>
       </div>
 
       <!-- Sub-filter: Varietal -->
@@ -907,6 +943,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-varietal">
         <select id="f-varietal" multiple><option value="__all__" selected>All Varietals</option></select>
+        <div class="sf-checklist" id="cl-varietal"><label class="all-option"><input type="checkbox" id="cl-varietal-all" value="__all__" checked> All Varietals</label></div>
       </div>
 
       <!-- Sub-filter: Customer -->
@@ -916,6 +953,7 @@ footer {
       </div>
       <div class="sf-body" id="sf-body-customer">
         <select id="f-customer" multiple><option value="__all__" selected>All Customers</option></select>
+        <div class="sf-checklist" id="cl-customer"><label class="all-option"><input type="checkbox" id="cl-customer-all" value="__all__" checked> All Customers</label></div>
       </div>
 
     </div>
@@ -1105,12 +1143,16 @@ footer {
                   <th data-col="county">County</th>
                   <th data-col="status">Status</th>
                   <th data-col="customer">Customer</th>
+                  <th data-col="acres" class="r">Acres</th>
                   <th data-col="tons" class="r">Tons</th>
                   <th data-col="ppt" class="r">$/Ton</th>
                   <th data-col="revenue" class="r">Revenue</th>
-                  <th data-col="acres" class="r">Acres</th>
                   <th data-col="tpa" class="r">T/Ac</th>
                   <th data-col="finalYear" class="r">Final Yr</th>
+                  <th data-col="plantYear" class="r">Plant Yr</th>
+                  <th data-col="graftYear" class="r">Graft Yr</th>
+                  <th data-col="clone">Clone</th>
+                  <th data-col="rootstock">Rootstock</th>
                 </tr>
               </thead>
               <tbody id="tbl-body"></tbody>
@@ -1285,6 +1327,10 @@ function detectColumns(headerRow) {
   COL.contract   = findCol(map, ['contract','contract record','contract name','contract #']);
   COL.block      = findCol(map, ['block','block name','block id','block #']);
   COL.blockCode  = findCol(map, ['block code','blockcode','blk code','blk cd','code']);
+  COL.plantYear  = findCol(map, ['plant year','planted','year planted','plant yr']);
+  COL.graftYear  = findCol(map, ['graft year','grafted','year grafted','graft yr']);
+  COL.clone      = findCol(map, ['clone','clone #','clone id']);
+  COL.rootstock  = findCol(map, ['rootstock','root stock','root']);
 
   // Column detection debug output removed for production security.
 }
@@ -1367,11 +1413,17 @@ function parseRows(values) {
     const vinCode   = blockCode ? blockCode.slice(0,3).toUpperCase()
                                 : vineyard.slice(0,3).toUpperCase();
 
+    const plantYear  = getV(COL.plantYear)  ? parseInt(getV(COL.plantYear))  || null : null;
+    const graftYear  = getV(COL.graftYear)  ? parseInt(getV(COL.graftYear))  || null : null;
+    const clone      = String(getV(COL.clone)     || '').trim() || null;
+    const rootstock  = String(getV(COL.rootstock) || '').trim() || null;
+
     data.push({
       owner, vineyard, block, blockCode, vinCode, varietal, status, customer,
       tons: tonsRaw, ppt: pptRaw, revenue,
       acres: acresRaw, tpa,
       ava, state, county, finalYear,
+      plantYear, graftYear, clone, rootstock,
       _row: i
     });
   }
@@ -1389,8 +1441,12 @@ function parseRows(values) {
 // removes options that are no longer in the valid set;
 // adds new options that weren't present before.
 // Always keeps the "All" sentinel at index 0.
+// Detect touch-primary device once
+const IS_TOUCH = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
 function syncSelect(id, validValues, isCustomer) {
   const sel = document.getElementById(id);
+  const sfName = id.replace('f-', '');
 
   // Build the filtered, sorted set of valid option values
   const validSet = new Set(
@@ -1401,36 +1457,97 @@ function syncSelect(id, validValues, isCustomer) {
   const sorted = [...validSet].sort((a, b) => String(a).localeCompare(String(b)));
 
   // Snapshot which values were selected BEFORE we touch the DOM
-  const prevSelected = new Set(
-    Array.from(sel.selectedOptions).map(o => o.value).filter(v => v !== '__all__')
-  );
+  // On touch devices, read from checkbox list; on desktop from select
+  const prevSelected = IS_TOUCH
+    ? getSelectedFromChecklist(sfName)
+    : new Set(Array.from(sel.selectedOptions).map(o => o.value).filter(v => v !== '__all__'));
 
-  // Fully rebuild the option list (keeps "All" at index 0)
-  // This is simpler and more reliable than incremental add/remove
+  // ── Update native <select> (used on desktop) ──
   while (sel.options.length > 1) sel.remove(1);
   sorted.forEach(v => {
     const opt = document.createElement('option');
-    opt.value = v;
-    opt.textContent = v;
+    opt.value = v; opt.textContent = v;
     sel.appendChild(opt);
   });
-
-  // Restore selections that are still in the valid set
   let anySelected = false;
   Array.from(sel.options).forEach(o => {
     if (o.value === '__all__') return;
     o.selected = prevSelected.has(o.value) && validSet.has(o.value);
     if (o.selected) anySelected = true;
   });
-
-  // Default to "All" if nothing remains selected
   sel.options[0].selected = !anySelected;
 
-  // If this filter's sub-panel is open, resize it for the new option count
-  const sfName = id.replace('f-', '');
+  // ── Update checkbox list (used on touch devices) ──
+  syncChecklist(sfName, sorted, prevSelected, validSet);
+
+  // Resize open sub-panel
   if (openSubFilter === sfName) {
     requestAnimationFrame(() => resizeSelect(sfName));
   }
+}
+
+function getSelectedFromChecklist(sfName) {
+  const cl = document.getElementById('cl-' + sfName);
+  if (!cl) return new Set();
+  const checked = new Set();
+  cl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.value !== '__all__' && cb.checked) checked.add(cb.value);
+  });
+  return checked;
+}
+
+function syncChecklist(sfName, sorted, prevSelected, validSet) {
+  const cl = document.getElementById('cl-' + sfName);
+  if (!cl) return;
+
+  // Keep the "All" checkbox at top, rebuild the rest
+  const allCb = cl.querySelector('input[value="__all__"]');
+  // Remove all non-all labels
+  cl.querySelectorAll('label:not(.all-option)').forEach(l => l.remove());
+
+  let anyChecked = false;
+  sorted.forEach(v => {
+    const isChecked = prevSelected.has(v) && validSet.has(v);
+    if (isChecked) anyChecked = true;
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = v;
+    cb.checked = isChecked;
+    cb.addEventListener('change', onChecklistChange.bind(null, sfName));
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(' ' + v));
+    cl.appendChild(label);
+  });
+
+  // All checkbox: checked when nothing else is selected
+  if (allCb) {
+    allCb.checked = !anyChecked;
+    // Re-attach listener (safe to re-add)
+    allCb.onchange = () => {
+      if (allCb.checked) {
+        // Deselect all others
+        cl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          if (cb.value !== '__all__') cb.checked = false;
+        });
+      } else {
+        allCb.checked = true; // prevent deselecting "All" with nothing else
+      }
+      onChecklistChange(sfName);
+    };
+  }
+}
+
+function onChecklistChange(sfName) {
+  const cl = document.getElementById('cl-' + sfName);
+  if (!cl) return;
+  const allCb = cl.querySelector('input[value="__all__"]');
+  const others = [...cl.querySelectorAll('input[type="checkbox"]')].filter(cb => cb.value !== '__all__');
+  const anyOther = others.some(cb => cb.checked);
+  // If any specific item is checked, uncheck "All"; if none, check "All"
+  if (allCb) allCb.checked = !anyOther;
+  updateFilterOptions();
+  renderDashboard();
 }
 
 // Initial population (first load — no cascading yet)
@@ -1493,6 +1610,12 @@ function updateFilterOptions() {
 // FILTERING
 // ═══════════════════════════════════════════════════════════
 function getSelected(id) {
+  const sfName = id.replace('f-', '');
+  if (IS_TOUCH) {
+    // Read from checkbox list on touch devices
+    const checked = getSelectedFromChecklist(sfName);
+    return checked.size > 0 ? checked : null;
+  }
   const sel = document.getElementById(id);
   const vals = Array.from(sel.selectedOptions).map(o => o.value);
   if (vals.includes('__all__') || vals.length === 0) return null;
@@ -2362,20 +2485,14 @@ function render_table(data) {
   const totalRow = `
     <tr style="background:var(--parchment2);font-weight:500;border-top:2px solid var(--border);">
       <td><em>Total</em></td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
+      <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+      <td class="r">${fmtN(totAcres)}</td>
       <td class="r">${fmtN(totTons)}</td>
       <td class="r">$${fmtN(totWtdPPT)}</td>
       <td class="r">${fmtK(totRev)}</td>
-      <td class="r">${fmtN(totAcres)}</td>
       <td class="r">${totTPA > 0 ? totTPA.toFixed(1) : '—'}</td>
       <td class="r">—</td>
+      <td class="r">—</td><td class="r">—</td><td>—</td><td>—</td>
     </tr>`;
 
   document.getElementById('tbl-body').innerHTML = tableData.map(d=>`
@@ -2389,12 +2506,16 @@ function render_table(data) {
       <td>${esc(d.county)}</td>
       <td><span class="pill p-${esc(d.status.toLowerCase().replace(/\s+/g,'-').replace('custom-crush','cc'))}">${esc(d.status)}</span></td>
       <td>${esc(d.customer)}</td>
+      <td class="r">${fmtN(d.acres)}</td>
       <td class="r">${fmtN(d.tons)}</td>
       <td class="r">$${fmtN(d.ppt)}</td>
       <td class="r">${fmtK(d.revenue)}</td>
-      <td class="r">${fmtN(d.acres)}</td>
       <td class="r">${d.tpa>0?d.tpa.toFixed(1):'—'}</td>
       <td class="r">${d.finalYear??'—'}</td>
+      <td class="r">${d.plantYear??'—'}</td>
+      <td class="r">${d.graftYear??'—'}</td>
+      <td>${esc(d.clone??'—')}</td>
+      <td>${esc(d.rootstock??'—')}</td>
     </tr>`).join('') + totalRow;
 
   document.getElementById('tbl-badge').textContent  = `${fmtN(tableData.length)} Records`;
@@ -2431,6 +2552,14 @@ function doReset() {
   FILTER_IDS.forEach(id => {
     const sel = document.getElementById(id);
     Array.from(sel.options).forEach(o => o.selected = o.value === '__all__');
+    // Also reset checkbox lists on touch devices
+    const sfName = id.replace('f-', '');
+    const cl = document.getElementById('cl-' + sfName);
+    if (cl) {
+      cl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = cb.value === '__all__';
+      });
+    }
   });
   sortCol = null; sortDir = 1;
   document.querySelectorAll('#tbl-head th').forEach(t => t.classList.remove('asc','desc'));
