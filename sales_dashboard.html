@@ -832,17 +832,18 @@ body.sidebar-open {
 }
 
 .sidebar-backdrop {
-  display: none;
+  display: block;          /* always in DOM — never snap to none */
   position: fixed; inset: 0;
   background: rgba(28,23,18,0.55);
   z-index: 149;
   opacity: 0;
   pointer-events: none;
-  touch-action: none;     /* block touch scroll on backdrop */
+  touch-action: none;
   transition: opacity 0.25s;
+  /* Prevent any white flash underneath by matching page bg */
+  -webkit-tap-highlight-color: transparent;
 }
 .sidebar-backdrop.visible {
-  display: block;
   opacity: 1;
   pointer-events: auto;
   touch-action: none;
