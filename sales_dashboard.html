@@ -427,6 +427,17 @@ header {
 /* Mobile: shorter map */
 @media (max-width: 768px) {
   #map-container { height: 360px; }
+  /* Map buttons: icon-only, equal square size on mobile */
+  .map-extent-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .map-extent-btn-text { display: none; }
+  .map-extent-btn img,
+  .map-extent-btn svg { margin-right: 0 !important; }
+  #map-layer-swatch { margin-right: 0 !important; }
   .view-tab { padding: 10px 14px; font-size: 10px; }
 }
 
@@ -1066,6 +1077,13 @@ body.sidebar-open {
   .header-left h1 { font-size: 15px; }
   .chart-slot .card { height: 260px; }
 }
+.leaflet-control-attribution {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100vw - 120px);
+  font-size: 9px !important;
+}
 .leaflet-popup-content-wrapper {
   font-family: 'DM Mono', monospace;
   border-radius: 3px;
@@ -1085,7 +1103,14 @@ body.sidebar-open {
 }
 /* Popup: limit width on small screens */
 @media (max-width: 480px) {
-  .leaflet-popup-content-wrapper { max-width: calc(100vw - 40px) !important; }
+  .leaflet-control-attribution {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100vw - 120px);
+  font-size: 9px !important;
+}
+.leaflet-popup-content-wrapper { max-width: calc(100vw - 40px) !important; }
   .leaflet-popup-content { margin: 8px 10px !important; }
 }
 /* Suppress Leaflet's blue focus outline on SVG polygon paths */
@@ -1468,10 +1493,10 @@ body.sidebar-open {
       <div id="map-container">
         <div id="map"></div>
         <div style="position:absolute;bottom:24px;left:10px;z-index:1000;display:flex;flex-direction:column;gap:6px;">
-          <button class="map-extent-btn" onclick="zoomToFullExtent()" title="Reset Map"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAEWklEQVR42rVXz2scVRz/fL/f92ZmZyabbXanm2Q3u1V2TdhCWro0Sg7m2kAoeJKK3krQHkS8eBGK/gkKCkLBi5d48SI9qSUVbwoGQSkE6Q8xrb8alXS7nZnnwZnykqZNskkevMPMe/O+n/l8P98fDxh8CA5gDHIIAWAAablcnhIR6vf7G9n7Qx8CAESEMAxfFZG/HcfpZGt8mIYJgAKAZrM56rrup0RkiMgMDQ09kwGTQ//rUql0VkRuAjAAYmaOK5XK2DZAD9Yd3W7X9zzvPWY2mfEHAAwzJ8PDw+dHRkaem5iYGGfmAxUpAZAjR47MKqW+ywwn2cyBGCIyzGxEZN1xnKtBELw+NTVVtnQxEBsMgCYnJ49prf/MjN0DkNrGLTb6+RoRGaXUL2EYvmYxQoMyQNVq9bjW+goRmczIIwxka/ns5e9d111aWFjw9wsCxhguFArvMHNia4CIkmKx+FKxWDzned6HlkBTAPcBGMdxvpqbm/P27Q4AKJVKc0qpH3M9MHM8MTExnm88ceJEyff9t0Xkvs2G67qfENG+hakAYGZmpuh53ke5+Gq1Wjtbc/KNlUrleRH5I2eCiEwQBOcOIjoe5oQgCF50HOfXarV6fAtTTg6CmfuZuxKl1PVut+vn2tp3eAJAu92u1ev1kW1E5gBAoVB4N3cFERnf91+x2TzMQkYAuNVqFUXkThY5qdb6891ogfZA05OULQDged6lPERF5Han0wltxrarYHZM7zTSJ+wjAMTMy9lzYoyJ1tbWGjaATb4wxtD8/PxDNV++fLmfJZlBhgFgCoXCrV6vhzRNDQBK07S8HQABkERRdHJ9ff2zNE1jIlJRFL0M4Gq+PiCQdFMsK8WPxHZOY5IkD+I4bhjz/09vbGw8BeDrAcOGAFCv1zuanwcAcRzftW2y/dBut28w82+5b+M4Pr1LLTzWDUmSPJsBECJaHx8fv2nb3KRoIoLW+osMQCoi18+cOeMOkMcJAC8uLmoRWc3P01ovZ2HIj021hULhgp08wjC8kK3rPQDQABCG4flMxL1MkG88KRERAHQ6nZEsj8cAYhH5q16vt/YAQgNAtVo9xsy/W+fcbbVa0U6lWQAgCII3beRKqZ9GR0ebVvJRllvIeicAUKvV6iLyg10Rfd9/azfFiADI0tKSOI6zbB8gIrfCMHxhS9+3WUTMKJVKZ5VSN+xvtdbfXLx4MQdIu0qvzWZzVESube1ytNZXfN9fjKLoZKPRGGs0GmNRFJ0Mw3DRcZwvrcY1Z+/ner1e2+vdgQFgbGysoZT61mpI+1sa0X+Z+R9mttuyfuZ3o5T6vtFoPD3oxYUBYHp6OvA8731mjq0akdf5NJt5Y2rydt3zvA9mZ2eH9ntr4rwBqVQqXc/zLiml1rb8sc3Ibdd1Py6Xy6ezeN/ROO02qQBIiAinTp0aXl1dnY7jeLLX6x3NSu4dpdS1ZrO5srKycjfPfDtUy4HY2E0/J3uh/D+w81hJVrMh5QAAAABJRU5ErkJggg==" width="16" height="16" style="margin-right:5px;flex-shrink:0;display:block;" alt="reset">Reset Map</button>
-          <button class="map-extent-btn" onclick="zoomToFiltered()" title="Zoom to Filtered"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:5px;flex-shrink:0;display:block;"><circle cx="6" cy="6" r="4.5" stroke="#333" stroke-width="1.5"/><path d="M9.5 9.5L14 14" stroke="#333" stroke-width="1.5" stroke-linecap="round"/></svg>Filtered</button>
+          <button class="map-extent-btn" onclick="zoomToFullExtent()" title="Reset Map" style="min-width:0;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAEWklEQVR42rVXz2scVRz/fL/f92ZmZyabbXanm2Q3u1V2TdhCWro0Sg7m2kAoeJKK3krQHkS8eBGK/gkKCkLBi5d48SI9qSUVbwoGQSkE6Q8xrb8alXS7nZnnwZnykqZNskkevMPMe/O+n/l8P98fDxh8CA5gDHIIAWAAablcnhIR6vf7G9n7Qx8CAESEMAxfFZG/HcfpZGt8mIYJgAKAZrM56rrup0RkiMgMDQ09kwGTQ//rUql0VkRuAjAAYmaOK5XK2DZAD9Yd3W7X9zzvPWY2mfEHAAwzJ8PDw+dHRkaem5iYGGfmAxUpAZAjR47MKqW+ywwn2cyBGCIyzGxEZN1xnKtBELw+NTVVtnQxEBsMgCYnJ49prf/MjN0DkNrGLTb6+RoRGaXUL2EYvmYxQoMyQNVq9bjW+goRmczIIwxka/ns5e9d111aWFjw9wsCxhguFArvMHNia4CIkmKx+FKxWDzned6HlkBTAPcBGMdxvpqbm/P27Q4AKJVKc0qpH3M9MHM8MTExnm88ceJEyff9t0Xkvs2G67qfENG+hakAYGZmpuh53ke5+Gq1Wjtbc/KNlUrleRH5I2eCiEwQBOcOIjoe5oQgCF50HOfXarV6fAtTTg6CmfuZuxKl1PVut+vn2tp3eAJAu92u1ev1kW1E5gBAoVB4N3cFERnf91+x2TzMQkYAuNVqFUXkThY5qdb6891ogfZA05OULQDged6lPERF5Han0wltxrarYHZM7zTSJ+wjAMTMy9lzYoyJ1tbWGjaATb4wxtD8/PxDNV++fLmfJZlBhgFgCoXCrV6vhzRNDQBK07S8HQABkERRdHJ9ff2zNE1jIlJRFL0M4Gq+PiCQdFMsK8WPxHZOY5IkD+I4bhjz/09vbGw8BeDrAcOGAFCv1zuanwcAcRzftW2y/dBut28w82+5b+M4Pr1LLTzWDUmSPJsBECJaHx8fv2nb3KRoIoLW+osMQCoi18+cOeMOkMcJAC8uLmoRWc3P01ovZ2HIj021hULhgp08wjC8kK3rPQDQABCG4flMxL1MkG88KRERAHQ6nZEsj8cAYhH5q16vt/YAQgNAtVo9xsy/W+fcbbVa0U6lWQAgCII3beRKqZ9GR0ebVvJRllvIeicAUKvV6iLyg10Rfd9/azfFiADI0tKSOI6zbB8gIrfCMHxhS9+3WUTMKJVKZ5VSN+xvtdbfXLx4MQdIu0qvzWZzVESube1ytNZXfN9fjKLoZKPRGGs0GmNRFJ0Mw3DRcZwvrcY1Z+/ner1e2+vdgQFgbGysoZT61mpI+1sa0X+Z+R9mttuyfuZ3o5T6vtFoPD3oxYUBYHp6OvA8731mjq0akdf5NJt5Y2rydt3zvA9mZ2eH9ntr4rwBqVQqXc/zLiml1rb8sc3Ibdd1Py6Xy6ezeN/ROO02qQBIiAinTp0aXl1dnY7jeLLX6x3NSu4dpdS1ZrO5srKycjfPfDtUy4HY2E0/J3uh/D+w81hJVrMh5QAAAABJRU5ErkJggg==" width="16" height="16" style="margin-right:5px;flex-shrink:0;display:block;" alt="reset"><span class="map-extent-btn-text">Reset Map</span></button>
+          <button class="map-extent-btn" onclick="zoomToFiltered()" title="Zoom to Filtered"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:5px;flex-shrink:0;display:block;"><circle cx="6" cy="6" r="4.5" stroke="#333" stroke-width="1.5"/><path d="M9.5 9.5L14 14" stroke="#333" stroke-width="1.5" stroke-linecap="round"/></svg><span class="map-extent-btn-text">Filtered</span></button>
           <button class="map-extent-btn" id="map-layer-btn" onclick="toggleMapLayer()" title="Switch base layer">
-            <span id="map-layer-swatch" style="display:flex;width:18px;height:16px;border-radius:2px;margin-right:6px;border:1px solid rgba(0,0,0,0.2);flex-shrink:0;align-items:center;justify-content:center;overflow:hidden;"><img id="map-layer-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE4IDE0Ij48cmVjdCB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIGZpbGw9IiMyZDRhMWUiLz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI2IiBmaWxsPSIjNDM1ZTJhIi8+PHJlY3QgeD0iOSIgeT0iMCIgd2lkdGg9IjkiIGhlaWdodD0iNSIgZmlsbD0iIzM4NGYyMiIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciIGZpbGw9IiM1MTZiMzEiLz48cmVjdCB4PSI4IiB5PSI2IiB3aWR0aD0iMTAiIGhlaWdodD0iOCIgZmlsbD0iIzNkNTUyNSIvPjxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMTEiIHk9IjgiIHdpZHRoPSI0IiBoZWlnaHQ9IjMiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMSIgeT0iOSIgd2lkdGg9IjIiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48cmVjdCB4PSIxMyIgeT0iMiIgd2lkdGg9IjMiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48L3N2Zz4=" width="18" height="14" style="display:block;"></span><span id="map-layer-label">Satellite</span>
+            <span id="map-layer-swatch" style="display:flex;width:18px;height:16px;border-radius:2px;margin-right:6px;border:1px solid rgba(0,0,0,0.2);flex-shrink:0;align-items:center;justify-content:center;overflow:hidden;"><img id="map-layer-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE4IDE0Ij48cmVjdCB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIGZpbGw9IiMyZDRhMWUiLz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI2IiBmaWxsPSIjNDM1ZTJhIi8+PHJlY3QgeD0iOSIgeT0iMCIgd2lkdGg9IjkiIGhlaWdodD0iNSIgZmlsbD0iIzM4NGYyMiIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciIGZpbGw9IiM1MTZiMzEiLz48cmVjdCB4PSI4IiB5PSI2IiB3aWR0aD0iMTAiIGhlaWdodD0iOCIgZmlsbD0iIzNkNTUyNSIvPjxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMTEiIHk9IjgiIHdpZHRoPSI0IiBoZWlnaHQ9IjMiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMSIgeT0iOSIgd2lkdGg9IjIiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48cmVjdCB4PSIxMyIgeT0iMiIgd2lkdGg9IjMiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48L3N2Zz4=" width="18" height="14" style="display:block;"></span><span class="map-extent-btn-text" id="map-layer-label">Satellite</span>
           </button>
         </div>
         <div class="map-legend" id="map-legend"></div>
@@ -3709,7 +3734,7 @@ let isSatellite   = false;
 const CARTO_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
 const ESRI_URL  = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+const ESRI_ATTR = 'Tiles &copy; <a href="https://www.esri.com">Esri</a>';
 
 function initBaseLayers() {
   baseLayer = L.tileLayer(CARTO_URL, {
