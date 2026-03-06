@@ -3232,7 +3232,9 @@ function closeMobileSidebar() {
   backdrop.classList.remove('visible');
   document.querySelectorAll('.hamburger').forEach(b => b.classList.remove('open'));
   document.getElementById('mob-open-btn')?.classList.remove('open');
-  document.body.classList.remove('sidebar-open');
+  // Delay overflow:hidden removal until after slide animation (0.28s)
+  // so iOS doesn't repaint the overscroll area white mid-animation
+  setTimeout(() => document.body.classList.remove('sidebar-open'), 300);
 }
 
 // iOS scroll lock: intercept touchmove at document level.
