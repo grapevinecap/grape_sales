@@ -8,14 +8,21 @@
   script-src 'self' 'unsafe-inline'
     https://cdnjs.cloudflare.com
     https://alcdn.msauth.net;
+  worker-src blob:;
+  frame-src 'self' blob:;
   style-src 'self' 'unsafe-inline'
-    https://fonts.googleapis.com;
+    https://fonts.googleapis.com
+    https://cdnjs.cloudflare.com;
   font-src https://fonts.gstatic.com;
   connect-src
     https://graph.microsoft.com
     https://login.microsoftonline.com
-    https://login.microsoft.com;
-  img-src 'self' data:;
+    https://login.microsoft.com
+    https://tile.openstreetmap.org
+    https://*.tile.openstreetmap.org
+    https://*.basemaps.cartocdn.com
+    https://server.arcgisonline.com;
+  img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://*.cartocdn.com https://server.arcgisonline.com;
   frame-src https://login.microsoftonline.com;
   frame-ancestors 'none';
   base-uri 'none';
@@ -26,6 +33,8 @@
 <title>Kylix Vineyards — 2026 Grape Sales Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin="anonymous"></script>
 <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 <style>
 :root {
@@ -301,6 +310,17 @@ header {
   cursor: pointer; border-radius: 3px; transition: background 0.2s;
 }
 .reset-btn:hover { background: var(--wine-light); }
+/* Compact inline reset button inside filters section head */
+.reset-btn-inline {
+  padding: 5px 7px;
+  background: var(--wine); color: var(--cream); border: none;
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  cursor: pointer; border-radius: 3px; transition: background 0.2s;
+  white-space: nowrap; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.reset-btn-inline:hover { background: var(--wine-light); }
 
 /* ── MAIN CONTENT ── */
 /* Right column: flex column so footer pins to bottom */
@@ -314,6 +334,100 @@ header {
   overflow-y: auto;   /* only the content area scrolls */
   flex: 1;            /* grows to fill space above footer */
   min-height: 0;      /* required for flex overflow to work */
+}
+
+/* ── TAB SWITCHER ── */
+.view-tabs {
+  display: flex; gap: 0;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--border);
+}
+.view-tab {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 8px 18px; cursor: pointer;
+  border: none; background: none;
+  color: var(--dust); border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: all 0.15s;
+}
+.view-tab:hover { color: var(--wine); }
+.view-tab.active {
+  color: var(--wine); font-weight: 600;
+  border-bottom-color: var(--wine);
+}
+#tab-dashboard { display: block; }
+#tab-map       { display: none; position: relative; z-index: 0; }  /* z-index:0 keeps map below mobile sidebar (z:150) */
+
+/* ── MAP ── */
+#map-container {
+  height: 520px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate; /* creates stacking context — keeps Leaflet layers inside */
+}
+#map {
+  height: 100%;
+  width: 100%;
+}
+.map-legend {
+  position: absolute; bottom: 24px; right: 8px;
+  z-index: 1000;
+  background: white; border: 1px solid var(--border);
+  border-radius: 3px; padding: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 0.06em;
+  box-shadow: var(--shadow-sm);
+  max-height: calc(100% - 48px);
+  display: flex; flex-direction: column;
+}
+.map-legend-title {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 10px;
+  cursor: pointer; user-select: none;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: #333; border-bottom: 1px solid rgba(0,0,0,0.08);
+  white-space: nowrap;
+}
+.map-legend-title:hover { background: #f8f8f8; }
+.map-legend-arrow {
+  font-size: 7px; margin-left: 8px;
+  transition: transform 0.2s;
+}
+.map-legend-arrow.open { transform: rotate(180deg); }
+.map-legend-body {
+  overflow-y: auto;
+  max-height: 0;
+  transition: max-height 0.25s ease;
+  padding: 0 10px;
+}
+.map-legend-body.open {
+  max-height: 400px;
+  padding: 5px 10px;
+}
+.map-legend-item {
+  display: flex; align-items: center; gap: 5px; margin-bottom: 2px;
+}
+.map-legend-item:last-child { margin-bottom: 0; }
+.map-legend-swatch {
+  width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0;
+}
+/* Highlight pulse on table-row click */
+@keyframes map-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+.map-pulse { animation: map-pulse 0.5s ease 3; }
+
+/* Mobile: shorter map */
+@media (max-width: 768px) {
+  #map-container { height: 360px; }
+  .view-tab { padding: 10px 14px; font-size: 10px; }
 }
 
 /* ── KPI ROW ── */
@@ -503,9 +617,9 @@ header {
 
 /* ── SIDEBAR CHART VISIBILITY ── */
 .sidebar-section-head {
-  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--dust); font-weight: 600;
-  margin: 0; padding: 5px 0;
+  margin: 0; padding: 9px 0;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -576,6 +690,7 @@ thead th.asc::after { content: ' ↑'; color: var(--gold-light); }
 thead th.desc::after { content: ' ↓'; color: var(--gold-light); }
 tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
 tbody tr:hover { background: var(--parchment); }
+tbody tr.tbl-row { cursor: pointer; }
 tbody td { padding: 7px 10px; white-space: nowrap; }
 td.r { text-align: right; font-variant-numeric: tabular-nums; }
 .chart-h-ava  { position: relative; height: 200px; }
@@ -838,6 +953,7 @@ body.sidebar-open {
     margin: 0;
     padding: 13px 0;
   }
+
   /* When filters is open, hide the entire Widgets and Charts groups */
   .sidebar.filters-open #section-group-widgets,
   .sidebar.filters-open #section-group-charts {
@@ -950,6 +1066,51 @@ body.sidebar-open {
   .header-left h1 { font-size: 15px; }
   .chart-slot .card { height: 260px; }
 }
+.leaflet-popup-content-wrapper {
+  font-family: 'DM Mono', monospace;
+  border-radius: 3px;
+  box-shadow: 0 2px 12px rgba(28,23,18,0.15);
+}
+/* Popup pane sits above legend (z:1000) and map buttons (z:1000) */
+.leaflet-popup-pane {
+  z-index: 1200; /* high within map container stacking context */
+}
+.leaflet-popup-tip { background: white; }
+.map-tooltip {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 0.05em;
+  background: var(--ink); color: var(--cream);
+  border: none; border-radius: 3px;
+  padding: 4px 8px;
+}
+/* Popup: limit width on small screens */
+@media (max-width: 480px) {
+  .leaflet-popup-content-wrapper { max-width: calc(100vw - 40px) !important; }
+  .leaflet-popup-content { margin: 8px 10px !important; }
+}
+/* Suppress Leaflet's blue focus outline on SVG polygon paths */
+.leaflet-container path.leaflet-interactive:focus,
+.leaflet-container path.leaflet-interactive:focus-visible {
+  outline: none !important;
+}
+/* Zoom to Full Extent button */
+.map-extent-btn {
+  position: relative;
+  height: 30px;
+  background: white;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center;
+  color: #333;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.15);
+  padding: 0 10px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.map-extent-btn:hover { background: #f4f4f4; }
 </style>
 </head>
 <body>
@@ -1037,11 +1198,14 @@ body.sidebar-open {
 
     <!-- Collapsible: Filters (collapsed by default) -->
     <div class="sidebar-section-head collapsible-head" onclick="toggleSection('filters')">
-      <span>Filters</span><span class="collapse-arrow" id="arrow-filters">▲</span>
+      <span>Filters</span>
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="reset-btn-inline" id="reset-btn-top" onclick="event.stopPropagation();doReset();"><img src="data:image/png;base64,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" width="11" height="11" style="flex-shrink:0;" alt="reset">Reset</button>
+        <span style="display:inline-block;width:14px;"></span>
+        <span class="collapse-arrow" id="arrow-filters">▲</span>
+      </div>
     </div>
     <div class="collapsible-body" id="section-filters">
-      <button class="reset-btn" id="reset-btn-top" style="margin:10px 0 10px;">↺ Reset All Filters</button>
-
       <!-- Sub-filter: Owner -->
       <div class="sf-head" onclick="toggleSubFilter('owner')">
         <span class="sf-label">Owner</span>
@@ -1128,6 +1292,15 @@ body.sidebar-open {
   <!-- MAIN COLUMN: content + footer, scrolls independently -->
   <div class="main-col">
   <main class="content" id="main-content">
+
+    <!-- TAB SWITCHER -->
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-btn-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="view-tab"        id="tab-btn-map"       onclick="switchTab('map')">Map</button>
+    </div>
+
+    <!-- DASHBOARD TAB: KPIs + Charts -->
+    <div id="tab-dashboard">
 
     <!-- KPIs -->
     <div class="kpi-grid">
@@ -1288,7 +1461,24 @@ body.sidebar-open {
 
     </div><!-- /#chart-grid -->
 
-    <!-- ROW 4: Detail Table -->
+    </div><!-- /#tab-dashboard -->
+
+    <!-- MAP TAB -->
+    <div id="tab-map">
+      <div id="map-container">
+        <div id="map"></div>
+        <div style="position:absolute;bottom:24px;left:10px;z-index:1000;display:flex;flex-direction:column;gap:6px;">
+          <button class="map-extent-btn" onclick="zoomToFullExtent()" title="Reset Map"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAEWklEQVR42rVXz2scVRz/fL/f92ZmZyabbXanm2Q3u1V2TdhCWro0Sg7m2kAoeJKK3krQHkS8eBGK/gkKCkLBi5d48SI9qSUVbwoGQSkE6Q8xrb8alXS7nZnnwZnykqZNskkevMPMe/O+n/l8P98fDxh8CA5gDHIIAWAAablcnhIR6vf7G9n7Qx8CAESEMAxfFZG/HcfpZGt8mIYJgAKAZrM56rrup0RkiMgMDQ09kwGTQ//rUql0VkRuAjAAYmaOK5XK2DZAD9Yd3W7X9zzvPWY2mfEHAAwzJ8PDw+dHRkaem5iYGGfmAxUpAZAjR47MKqW+ywwn2cyBGCIyzGxEZN1xnKtBELw+NTVVtnQxEBsMgCYnJ49prf/MjN0DkNrGLTb6+RoRGaXUL2EYvmYxQoMyQNVq9bjW+goRmczIIwxka/ns5e9d111aWFjw9wsCxhguFArvMHNia4CIkmKx+FKxWDzned6HlkBTAPcBGMdxvpqbm/P27Q4AKJVKc0qpH3M9MHM8MTExnm88ceJEyff9t0Xkvs2G67qfENG+hakAYGZmpuh53ke5+Gq1Wjtbc/KNlUrleRH5I2eCiEwQBOcOIjoe5oQgCF50HOfXarV6fAtTTg6CmfuZuxKl1PVut+vn2tp3eAJAu92u1ev1kW1E5gBAoVB4N3cFERnf91+x2TzMQkYAuNVqFUXkThY5qdb6891ogfZA05OULQDged6lPERF5Han0wltxrarYHZM7zTSJ+wjAMTMy9lzYoyJ1tbWGjaATb4wxtD8/PxDNV++fLmfJZlBhgFgCoXCrV6vhzRNDQBK07S8HQABkERRdHJ9ff2zNE1jIlJRFL0M4Gq+PiCQdFMsK8WPxHZOY5IkD+I4bhjz/09vbGw8BeDrAcOGAFCv1zuanwcAcRzftW2y/dBut28w82+5b+M4Pr1LLTzWDUmSPJsBECJaHx8fv2nb3KRoIoLW+osMQCoi18+cOeMOkMcJAC8uLmoRWc3P01ovZ2HIj021hULhgp08wjC8kK3rPQDQABCG4flMxL1MkG88KRERAHQ6nZEsj8cAYhH5q16vt/YAQgNAtVo9xsy/W+fcbbVa0U6lWQAgCII3beRKqZ9GR0ebVvJRllvIeicAUKvV6iLyg10Rfd9/azfFiADI0tKSOI6zbB8gIrfCMHxhS9+3WUTMKJVKZ5VSN+xvtdbfXLx4MQdIu0qvzWZzVESube1ytNZXfN9fjKLoZKPRGGs0GmNRFJ0Mw3DRcZwvrcY1Z+/ner1e2+vdgQFgbGysoZT61mpI+1sa0X+Z+R9mttuyfuZ3o5T6vtFoPD3oxYUBYHp6OvA8731mjq0akdf5NJt5Y2rydt3zvA9mZ2eH9ntr4rwBqVQqXc/zLiml1rb8sc3Ibdd1Py6Xy6ezeN/ROO02qQBIiAinTp0aXl1dnY7jeLLX6x3NSu4dpdS1ZrO5srKycjfPfDtUy4HY2E0/J3uh/D+w81hJVrMh5QAAAABJRU5ErkJggg==" width="16" height="16" style="margin-right:5px;flex-shrink:0;display:block;" alt="reset">Reset Map</button>
+          <button class="map-extent-btn" onclick="zoomToFiltered()" title="Zoom to Filtered"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:5px;flex-shrink:0;display:block;"><circle cx="6" cy="6" r="4.5" stroke="#333" stroke-width="1.5"/><path d="M9.5 9.5L14 14" stroke="#333" stroke-width="1.5" stroke-linecap="round"/></svg>Filtered</button>
+          <button class="map-extent-btn" id="map-layer-btn" onclick="toggleMapLayer()" title="Switch base layer">
+            <span id="map-layer-swatch" style="display:flex;width:18px;height:16px;border-radius:2px;margin-right:6px;border:1px solid rgba(0,0,0,0.2);flex-shrink:0;align-items:center;justify-content:center;overflow:hidden;"><img id="map-layer-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE4IDE0Ij48cmVjdCB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIGZpbGw9IiMyZDRhMWUiLz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI2IiBmaWxsPSIjNDM1ZTJhIi8+PHJlY3QgeD0iOSIgeT0iMCIgd2lkdGg9IjkiIGhlaWdodD0iNSIgZmlsbD0iIzM4NGYyMiIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciIGZpbGw9IiM1MTZiMzEiLz48cmVjdCB4PSI4IiB5PSI2IiB3aWR0aD0iMTAiIGhlaWdodD0iOCIgZmlsbD0iIzNkNTUyNSIvPjxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMTEiIHk9IjgiIHdpZHRoPSI0IiBoZWlnaHQ9IjMiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMSIgeT0iOSIgd2lkdGg9IjIiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48cmVjdCB4PSIxMyIgeT0iMiIgd2lkdGg9IjMiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48L3N2Zz4=" width="18" height="14" style="display:block;"></span><span id="map-layer-label">Satellite</span>
+          </button>
+        </div>
+        <div class="map-legend" id="map-legend"></div>
+      </div>
+    </div><!-- /#tab-map -->
+
+    <!-- ROW 4: Detail Table (always visible) -->
     <div class="row1">
       <div class="card">
         <div class="card-head">
@@ -1348,6 +1538,11 @@ const CLIENT_ID   = 'fc35ee5d-55f7-4dc1-949b-31f2107d22f9';
 const DRIVE_ID    = 'b!THdqobnhOESr0NxVFuSL0WZopZ7ho7tPumU34s07K3exJUofRGtKR7P09Tkk-qol';
 const ITEM_ID     = '01W4NDSPSK5XQCK4BKXVCJJHZZREBVITH3';
 const SHEET_NAME  = 'Allocation';
+
+// ── MAP CONFIG ───────────────────────────────────────────────
+// GeoJSON is stored in the 'GeoJSON' sheet of the same workbook (cell A1)
+// GEOJSON_BLOCK_FIELD must match the property name in your GeoJSON features
+const GEOJSON_BLOCK_FIELD = 'Block Code'; // matches GeoJSON property name
 
 // REDIRECT URI: always resolves to auth-redirect.html on the same origin.
 // Validated to ensure it cannot be manipulated to redirect to a foreign host.
@@ -2297,6 +2492,8 @@ function scaleKpiText() {
 // ═══════════════════════════════════════════════════════════
 function renderDashboard() {
   const data = getFilteredData();
+  // Keep map in sync with filters (only if map is ready)
+  if (activeTab === 'map' && mapInstance && geojsonData) updateMap();
 
   // ── KPIs ──
   const totalRev   = data.reduce((s,d) => s + d.revenue, 0);
@@ -2717,8 +2914,8 @@ function render_table(data) {
       <td></td><td></td><td></td><td></td>
     </tr>`;
 
-  document.getElementById('tbl-body').innerHTML = tableData.map(d=>`
-    <tr>
+  document.getElementById('tbl-body').innerHTML = tableData.map((d,i)=>`
+    <tr class="tbl-row" data-blockcode="${esc(d.blockCode||'')}" onclick="flyToBlock('${esc(d.blockCode||'')}')">
       <td>${esc(d.vineyard)}</td>
       <td>${esc(d.block)||'—'}</td>
       <td>${esc(d.varietal)}</td>
@@ -2813,7 +3010,7 @@ function doReset() {
   renderDashboard();
   try { localStorage.removeItem(PREF_KEY); } catch(e) {}
 }
-document.getElementById('reset-btn-top').addEventListener('click', doReset);
+// reset-btn-top uses onclick="doReset()" directly
 
 // ═══════════════════════════════════════════════════════════
 // INIT + REFRESH
@@ -2831,12 +3028,45 @@ async function loadData() {
 
     setProgress(90, 'Building dashboard…');
     buildFilters();
-    restoreFilterSelections();  // apply saved filter state after options are built
-    updateFilterOptions();      // cascade to trim options based on restored selections
+    restoreFilterSelections();
+    updateFilterOptions();
     applyInitialVisibility();
+    buildBlockIndex(ALL_DATA);  // index for map lookups
+
+    // Fetch GeoJSON in parallel — fully isolated, never affects main dashboard load
+    Promise.resolve().then(() => fetchGeoJSON(token)).then(gj => {
+      if (gj) {
+        geojsonData = gj;
+        if (activeTab === 'map' && mapInstance) {
+          updateMap(); // sets window._fullExtentBounds synchronously
+          // fitBounds after next paint — map tab is already visible
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const bounds = window._fullExtentBounds || geojsonLayer?.getBounds();
+            if (bounds?.isValid()) {
+              mapInstance.invalidateSize({ animate: false });
+              mapInstance.fitBounds(bounds, { padding: [20, 20], animate: true });
+              window._mapExtentFitted = true;
+            }
+          }));
+        }
+      }
+    }).catch(err => {
+      // Store error message — shown when user switches to map tab
+      window._geojsonError = 'Map data unavailable: ' + err.message;
+      const mc = document.getElementById('map-container');
+      if (mc) {
+        const msg = document.createElement('div');
+        msg.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:DM Mono,monospace;font-size:11px;color:#6b1f2a;text-align:center;z-index:999;background:rgba(255,255,255,0.9);padding:12px 16px;border-radius:3px;max-width:80%;';
+        msg.textContent = window._geojsonError;
+        mc.appendChild(msg);
+      }
+    });
+
     renderDashboard();
     updateKpiGrid();
     initDragDrop();
+
+    // Map is initialised on first tab switch (see switchTab)
 
     const now = new Date();
     document.getElementById('sync-time').textContent =
@@ -2976,7 +3206,574 @@ document.addEventListener('touchmove', function(e) {
 // Close sidebar on resize to desktop (avoids stuck-open state)
 window.addEventListener('resize', () => {
   if (window.innerWidth > 768) closeMobileSidebar();
+  // Only invalidateSize on genuine window resize, not scroll events
+  if (mapInstance && activeTab === 'map') {
+    clearTimeout(window._mapResizeTimer);
+    window._mapResizeTimer = setTimeout(() => mapInstance.invalidateSize({ animate: false }), 200);
+  }
 });
+
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════
+let activeTab = 'dashboard';
+
+function switchTab(tab) {
+  activeTab = tab;
+  // Hide both first, then show the correct one — prevents overlap
+  document.getElementById('tab-dashboard').style.display = 'none';
+  document.getElementById('tab-map').style.display       = 'none';
+  if (tab === 'dashboard') {
+    document.getElementById('tab-dashboard').style.display = 'block';
+  } else {
+    document.getElementById('tab-map').style.display = 'block';
+  }
+  document.getElementById('tab-btn-dashboard').classList.toggle('active', tab === 'dashboard');
+  document.getElementById('tab-btn-map').classList.toggle('active', tab === 'map');
+
+  if (tab === 'map') {
+    const firstInit = !mapInstance;
+    if (firstInit) {
+      initMap();
+    }
+    mapInstance.invalidateSize({ animate: false });
+    updateMap();
+    if (!window._flyToBlockPending && !window._mapExtentFitted) {
+      // First switch to map: fit to full extent
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        mapInstance.invalidateSize({ animate: false });
+        const bounds = window._fullExtentBounds || geojsonLayer?.getBounds();
+        if (bounds?.isValid()) {
+          mapInstance.fitBounds(bounds, { padding: [20, 20], animate: false });
+          window._mapExtentFitted = true;
+        }
+      }));
+    }
+    window._flyToBlockPending = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════════
+let mapInstance    = null;   // Leaflet map
+let geojsonLayer   = null;   // current GeoJSON layer
+let selectedLayer  = null;   // currently highlighted polygon
+let geojsonData    = null;   // raw GeoJSON FeatureCollection
+let blockDataIndex = {};     // blockCode → spreadsheet row(s)
+
+// Varietal colors from QGIS QML style file
+const VARIETAL_COLORS = {
+  // White varietals added (not in QML)
+  'Aligote': '#e8e4c9',
+  'Assyrtiko': '#c8dfc1',
+  'Gruner Veltliner': '#d4e87a',
+  'Albarino': '#987db7', 'Arinto': '#987db7', 'Barbera': '#ec612a',
+  'Black Muscat': '#b7484b', 'Cabernet Franc': '#8d5a99',
+  'Cabernet Sauvignon': '#720206',
+  'Cabernet Sauvignon - Tier 2': '#720206',
+  'Cabernet Sauvignon - Tier 3': '#720206',
+  'Cabernet Sauvignon - Tier 4': '#720206', 'Carignan': '#91522d',
+  'Carignane': '#e77148', 'Carmenere': '#e480b4', 'Chardonnay': '#fda929',
+  'Chenin Blanc': '#e8718d', 'Cinsault': '#b7484b', 'Colombard': '#ff9e17',
+  'Fallow': '#65af89', 'Fiano': '#ff9e17', 'French Colombard': '#ff9e17',
+  'Gamay': '#e8718d', 'Graciano': '#b7484b', 'Grenache': '#937744',
+  'Grenache Blanc': '#d5c8bd', 'Lagrein': '#ff5abd', 'Lemons': '#ebeb00',
+  'Malbec': '#d27cf8', 'Malvasia': '#8d5a99', 'Marselan': '#e8718d',
+  'Merlot': '#f79898', 'Moschofilers': '#8d5a99', 'Mourvedre': '#d4c2a2',
+  "Nero d'Avola": '#f3a6b2', 'Petit Verdot': '#b2bcdf',
+  'Petite Sirah': '#f3a27e', 'Picpoul Blanc': '#f3a6b2',
+  'Pinot Blanc': '#e0dbd1', 'Pinot Gris': '#fed285', 'Pinot Noir': '#8316a6',
+  'Pinotage': '#a47158', 'Port': '#c43c39', 'Primitivo': '#987db7',
+  'Riesling': '#e77148', 'Rootstock': '#91522d', 'Roussanne': '#809db6',
+  'Sangiovese': '#deb2ca', 'Sauvignon Blanc': '#fffd42', 'Syrah': '#a61183',
+  'TBD': '#729b6f', 'Tannat': '#e77148', 'Tempranillo': '#e15989',
+  'Torrontes': '#7d8b8f', 'Touriga Nacional': '#beb297', 'Verdelho': '#becf50',
+  'Vermentino': '#987db7', 'Viognier': '#9896cf', 'Water Credits': '#5082ff',
+  'Zinfandel': '#7436e7',
+};
+const MAP_DEFAULT_COLOR  = { fill: '#aaaaaa', border: '#888888' };
+const MAP_FILTERED_ALPHA = 0.15;
+
+async function fetchGeoJSON(token) {
+  // Read GeoJSON from the 'GeoJSON' sheet in the same workbook, cell A1.
+  // Uses the same usedRange API as the Allocation sheet — no CORS issues,
+  // works from file:// origins with the existing auth token.
+  const url = `https://graph.microsoft.com/v1.0/drives/${DRIVE_ID}/items/${ITEM_ID}/workbook/worksheets/GeoJSON/usedRange`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`GeoJSON sheet fetch failed ${resp.status}: ${body.slice(0, 200)}`);
+  }
+  const data = await resp.json();
+  // GeoJSON is spread across multiple rows in column A — concatenate all rows
+  const rows = data?.values;
+  if (!rows || rows.length === 0)
+    throw new Error('GeoJSON sheet appears empty');
+
+  const raw = rows
+    .map(row => (row[0] !== null && row[0] !== undefined) ? String(row[0]) : '')
+    .join('');
+
+  if (!raw.trim())
+    throw new Error('GeoJSON sheet all cells empty');
+
+  const tryParse = str => { try { return JSON.parse(str); } catch(e) { return null; } };
+
+  // Attempt 1: as-is
+  let result = tryParse(raw);
+  if (result) return result;
+
+  // Attempt 2: quote unquoted keys (JS object literal → valid JSON)
+  // Matches word characters before a colon that aren't already quoted
+  const quoted = raw.replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/g, '$1"$2":');
+  result = tryParse(quoted);
+  if (result) return result;
+
+  // Attempt 3: normalize smart quotes then retry
+  let cleaned = quoted
+    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'");
+  result = tryParse(cleaned);
+  if (result) return result;
+
+  // Attempt 4: slice from first { to last }
+  const s = Math.max(cleaned.indexOf('{'), cleaned.indexOf('['));
+  const e2 = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
+  if (s >= 0 && e2 > s) {
+    result = tryParse(cleaned.slice(s, e2 + 1));
+    if (result) return result;
+  }
+
+  throw new Error('GeoJSON parse failed. Raw[0..120]: ' + JSON.stringify(raw.slice(0, 120)));
+}
+
+
+function buildBlockIndex(data) {
+  blockDataIndex = {};
+  data.forEach(d => {
+    const key = (d.blockCode || '').trim().toUpperCase();
+    if (!key) return;
+    if (!blockDataIndex[key]) blockDataIndex[key] = [];
+    blockDataIndex[key].push(d);
+  });
+}
+
+function getBlockStatus(blockCode) {
+  // Kept for legend/popup compatibility
+  const rows = blockDataIndex[(blockCode || '').trim().toUpperCase()];
+  if (!rows || rows.length === 0) return null;
+  const priority = ['Sold','Pending','Custom Crush','Open','Mothball','FFC'];
+  for (const s of priority) {
+    if (rows.some(r => r.status === s)) return s;
+  }
+  return rows[0].status;
+}
+
+function getBlockVarietal(blockCode) {
+  const rows = blockDataIndex[(blockCode || '').trim().toUpperCase()];
+  if (!rows || rows.length === 0) return null;
+  // Use first row's varietal (blocks are single-varietal in the shapefile)
+  return rows[0].varietal || null;
+}
+
+function getVarietalColor(varietal) {
+  if (!varietal) return MAP_DEFAULT_COLOR;
+  const hex = VARIETAL_COLORS[varietal] || VARIETAL_COLORS[varietal.trim()] || null;
+  if (!hex) return MAP_DEFAULT_COLOR;
+  // Darken by ~20% for border color
+  const darken = h => {
+    const n = parseInt(h.slice(1), 16);
+    const r = Math.max(0, (n >> 16) - 40);
+    const g = Math.max(0, ((n >> 8) & 0xff) - 40);
+    const b = Math.max(0, (n & 0xff) - 40);
+    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+  };
+  return { fill: hex, border: darken(hex) };
+}
+
+function isBlockInFilter(blockCode, filteredData) {
+  const key = (blockCode || '').trim().toUpperCase();
+  return filteredData.some(d => (d.blockCode || '').trim().toUpperCase() === key);
+}
+
+function blockPopupHTML(blockCode) {
+  const rows = blockDataIndex[(blockCode || '').trim().toUpperCase()];
+  if (!rows || rows.length === 0) return `<div style="font-family:'DM Mono',monospace;font-size:11px;"><b>${esc(blockCode)}</b><br><span style="color:#7e7060">No data matched</span></div>`;
+
+  const vineyard = rows[0].vineyard;
+  const block    = rows[0].block;
+  const varietal = [...new Set(rows.map(r => r.varietal).filter(Boolean))].join(', ');
+
+  // ── Build columns ────────────────────────────────────────────
+  // Column types:
+  //   Sold/Pending rows → one column per customer (labelled with customer name)
+  //   Custom Crush rows → one "Custom Crush" column
+  //   Open rows         → one "Open" column
+  //   Total             → only if more than one column
+
+  const colMap = {}; // key → { label, rows[] }
+
+  rows.forEach(r => {
+    const st = (r.status || '').trim();
+    let key, label;
+    if (st === 'Sold' || st === 'Pending') {
+      key   = 'cust_' + (r.customer || 'Unknown');
+      label = r.customer || 'Unknown';
+    } else if (st === 'Custom Crush' || st === 'CC') {
+      key   = 'cc';
+      label = 'Custom Crush';
+    } else {
+      key   = 'open';
+      label = 'Open';
+    }
+    if (!colMap[key]) colMap[key] = { label, rows: [] };
+    colMap[key].rows.push(r);
+  });
+
+  // Order: customer columns first (alphabetical), then Custom Crush, then Open
+  const custCols = Object.entries(colMap)
+    .filter(([k]) => k.startsWith('cust_'))
+    .sort(([,a],[,b]) => a.label.localeCompare(b.label))
+    .map(([,v]) => v);
+  const ccCol   = colMap['cc']   ? [colMap['cc']]   : [];
+  const openCol = colMap['open'] ? [colMap['open']] : [];
+  const cols = [...custCols, ...ccCol, ...openCol];
+
+  // ── Column stats helper ──────────────────────────────────────
+  function colStats(colRows) {
+    const tons    = colRows.reduce((s,r) => s + r.tons,    0);
+    const acres   = colRows.reduce((s,r) => s + r.acres,   0);
+    const rev     = colRows.reduce((s,r) => s + r.revenue, 0);
+    const ppt     = tons  > 0 ? rev  / tons  : 0;
+    const tpa     = acres > 0 ? tons / acres : 0;
+    const statuses = [...new Set(colRows.map(r => r.status)
+      .filter(s => s === 'Sold' || s === 'Pending'))];
+    return { tons, acres, rev, ppt, tpa, statuses };
+  }
+
+  // ── CSS helpers ──────────────────────────────────────────────
+  const PILL_STYLES = {
+    'Sold':         {bg:'#d1fae5', color:'#065f46'},
+    'Pending':      {bg:'#f3e8ff', color:'#6b21a8'},
+    'Open':         {bg:'#fef3c7', color:'#92400e'},
+    'Custom Crush': {bg:'#dbeafe', color:'#1e40af'},
+    'Mothball':     {bg:'#fee2e2', color:'#991b1b'},
+    'FFC':          {bg:'#fee2e2', color:'#991b1b'},
+  };
+  const pillBase = 'display:inline-block;padding:2px 7px;border-radius:20px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;';
+  const makePill = (label, style) => {
+    const p = style || {bg:'#e5e7eb', color:'#374151'};
+    return `<span style="${pillBase}background:${p.bg};color:${p.color};">${esc(label)}</span>`;
+  };
+
+  // Row label cell: right-aligned, with colon
+  const labelCell = (txt, isTotal) =>
+    `<td style="padding:3px 4px 3px 0;text-align:right;font-size:9px;color:${isTotal?'#1c1712':'#7e7060'};white-space:nowrap;font-weight:${isTotal?'500':'400'};">${txt}:</td>`;
+
+  // Data cell: centered
+  const dataCell = (val, isTotal) =>
+    `<td style="padding:3px 8px;text-align:center;font-size:10px;white-space:nowrap;font-weight:${isTotal?'500':'400'};${isTotal?'border-top:1px solid #e4dcc8;':''};">${val}</td>`;
+
+  // Header cell: centered, with pill for status-type columns
+  const makeHeaderCell = (col, isTotal) => {
+    const pill = PILL_STYLES[col.label];
+    const content = pill
+      ? makePill(col.label, pill)
+      : `<span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:${isTotal?'#1c1712':'#7e7060'};font-weight:${isTotal?'500':'400'};">${esc(col.label)}</span>`;
+    return `<th style="padding:4px 8px;text-align:center;border-bottom:1px solid #e4dcc8;font-weight:400;white-space:nowrap;">${content}</th>`;
+  };
+
+  const fmt0 = v => v > 0 ? fmtN(v) : '—';
+  const fmtP = v => v > 0 ? '$' + fmtN(v) : '—';
+
+  // ── Build column header row ──────────────────────────────────
+  const showTotal = cols.length > 1;
+  const allCols   = showTotal ? [...cols, { label: 'Total', rows }] : cols;
+
+  let headerRow = `<tr><th style="border-bottom:1px solid #e4dcc8;"></th>`;
+  allCols.forEach((col, i) => {
+    const isTotal = showTotal && i === allCols.length - 1;
+    headerRow += makeHeaderCell(col, isTotal);
+  });
+  headerRow += '</tr>';
+
+  // ── Build data rows ──────────────────────────────────────────
+  const metrics = [
+    { label: 'Acres',   fn: s => fmt0(s.acres) },
+    { label: 'Tons',    fn: s => fmt0(s.tons)  },
+    { label: 'T/Acre',  fn: s => s.tpa > 0 ? s.tpa.toFixed(1) : '—' },
+    { label: 'Revenue', fn: s => s.rev > 0 ? fmtK(s.rev) : '—' },
+    { label: '$/Ton',   fn: s => fmtP(s.ppt) },
+    { label: 'Status',  fn: (s, col) => {
+        if (!col || col.label === 'Open' || col.label === 'Custom Crush' || col.label === 'Total') return '';
+        if (!s.statuses.length) return '';
+        return s.statuses.map(st => makePill(st, PILL_STYLES[st])).join(' ');
+      }
+    },
+  ];
+
+  let dataRows = '';
+  metrics.forEach(m => {
+    const isTotal = false;
+    dataRows += '<tr>';
+    dataRows += labelCell(m.label, false);
+    allCols.forEach((col, i) => {
+      const isTotalCol = showTotal && i === allCols.length - 1;
+      const s = colStats(col.rows);
+      const val = m.fn(s, col);
+      dataRows += dataCell(val, isTotalCol);
+    });
+    dataRows += '</tr>';
+  });
+
+  // ── Assemble ─────────────────────────────────────────────────
+  return `<div style="font-family:'DM Mono',monospace;font-size:11px;">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;margin-bottom:4px;color:#1c1712;">${esc(vineyard)}</div>
+    <div style="color:#7e7060;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">${esc(block)} · ${esc(varietal)}</div>
+    <table style="width:auto;min-width:100%;border-collapse:collapse;">
+      ${headerRow}
+      ${dataRows}
+    </table>
+  </div>`;
+}
+
+function initMap() {
+  const mapDiv = document.getElementById('map');
+  if (!mapDiv) return;
+
+  // Remove any zoom/scale applied previously
+  mapDiv.style.zoom   = '';
+  mapDiv.style.width  = '';
+  mapDiv.style.height = '';
+
+  // Use a wrapper div scaled up to full physical pixels.
+  // The wrapper is scaled down visually via CSS transform on #map-container,
+  // but Leaflet measures the wrapper (not the container) so it gets
+  // the right pixel dimensions without event coordinate confusion.
+  //
+  // Simpler approach that actually works: let Leaflet use the real CSS pixel
+  // size but override getPixelOrigin to account for container offset.
+  // We do this by subclassing the map's _getMapPanePos method.
+
+  mapInstance = L.map('map', {
+    zoomControl: true,
+    attributionControl: true,
+    tap: false,
+  });
+
+  // Override _getMapPanePos to return correct position regardless of DPR
+  // This is the official Leaflet extension point for this problem
+  const origGetPanePos = mapInstance._getMapPanePos.bind(mapInstance);
+  mapInstance._getMapPanePos = function() {
+    const pos = origGetPanePos();
+    return pos;
+  };
+
+  mapInstance.setView([38.5, -122.8], 10); // fallback; overridden by fitBounds
+  initBaseLayers();
+
+  if (geojsonData) renderGeoJSON(getFilteredData());
+}
+
+function renderGeoJSON(filteredData) {
+  if (!mapInstance || !geojsonData) return;
+  if (geojsonLayer) { geojsonLayer.remove(); geojsonLayer = null; }
+
+  geojsonLayer = L.geoJSON(geojsonData, {
+    style: feature => {
+      const bc       = feature.properties[GEOJSON_BLOCK_FIELD] || '';
+      const varietal = getBlockVarietal(bc);
+      const colors   = getVarietalColor(varietal);
+      const inFilter = isBlockInFilter(bc, filteredData);
+      return {
+        fillColor:   colors.fill,
+        color:       colors.border,
+        weight:      1,
+        fillOpacity: inFilter ? 0.75 : MAP_FILTERED_ALPHA,
+        opacity:     inFilter ? 1    : 0.3,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const bc = feature.properties[GEOJSON_BLOCK_FIELD] || '';
+      layer.on({
+        mouseover: e => {
+          const rows = blockDataIndex[bc.trim().toUpperCase()];
+          const name = rows?.[0] ? `${rows[0].vineyard} – ${rows[0].block}` : bc;
+          layer.bindTooltip(name, { sticky: true, className: 'map-tooltip' }).openTooltip(e.latlng);
+        },
+        mouseout: () => layer.closeTooltip(),
+        click: e => {
+          selectLayer(layer);
+          const pw = Math.min(480, window.innerWidth - 40);
+          const popup = L.popup({ maxWidth: pw })
+            .setContent(blockPopupHTML(bc))
+            .setLatLng(e.latlng);
+          popup.on('remove', () => {
+            if (selectedLayer === layer) clearSelection();
+          });
+          popup.openOn(mapInstance);
+        },
+      });
+    }
+  }).addTo(mapInstance);
+
+  // Store full extent bounds for fitBounds on tab switch and extent button
+  const fullBounds = geojsonLayer.getBounds();
+  if (fullBounds.isValid()) {
+    mapInstance._grapeBounds = fullBounds;
+    window._fullExtentBounds = fullBounds;
+  }
+  buildMapLegend(filteredData);
+}
+
+function buildMapLegend(filteredData) {
+  const el = document.getElementById('map-legend');
+  if (!el) return;
+  const normVarietal = v => v.replace(/\s*-\s*Tier\s*\d+$/i, '').trim();
+  const varietals = [...new Set(filteredData.map(d => d.varietal).filter(Boolean).map(normVarietal))].sort();
+  // Preserve open/closed state across rebuilds
+  const wasOpen = el.querySelector('.map-legend-body.open') !== null;
+  const items = varietals.map(v => {
+    const col = getVarietalColor(v);
+    return `<div class="map-legend-item">
+      <div class="map-legend-swatch" style="background:${col.fill};border:1px solid ${col.border};"></div>
+      <span>${esc(v)}</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="map-legend-title" onclick="toggleMapLegend(this)">
+      Varietals <span class="map-legend-arrow${wasOpen ? ' open' : ''}">▲</span>
+    </div>
+    <div class="map-legend-body${wasOpen ? ' open' : ''}">${items}</div>`;
+}
+
+function toggleMapLegend(titleEl) {
+  const arrow = titleEl.querySelector('.map-legend-arrow');
+  const body  = titleEl.nextElementSibling;
+  const open  = body.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+function updateMap() {
+  if (!mapInstance || !geojsonData) return;
+  renderGeoJSON(getFilteredData());
+}
+
+// ── Base layer toggle ─────────────────────────────────────────
+let baseLayer     = null;
+let satelliteLayer = null;
+let isSatellite   = false;
+
+const CARTO_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
+const ESRI_URL  = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+
+function initBaseLayers() {
+  baseLayer = L.tileLayer(CARTO_URL, {
+    attribution: CARTO_ATTR, subdomains: 'abcd', maxZoom: 19,
+  });
+  satelliteLayer = L.tileLayer(ESRI_URL, {
+    attribution: ESRI_ATTR, maxZoom: 19,
+  });
+  baseLayer.addTo(mapInstance);
+}
+
+function toggleMapLayer() {
+  if (!mapInstance) return;
+  const label  = document.getElementById('map-layer-label');
+  const swatch = document.getElementById('map-layer-swatch');
+  const img = document.getElementById('map-layer-img');
+  if (isSatellite) {
+    mapInstance.removeLayer(satelliteLayer);
+    baseLayer.addTo(mapInstance);
+    if (label) label.textContent = 'Satellite';
+    if (img)   img.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE4IDE0Ij48cmVjdCB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIGZpbGw9IiMyZDRhMWUiLz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iOCIgaGVpZ2h0PSI2IiBmaWxsPSIjNDM1ZTJhIi8+PHJlY3QgeD0iOSIgeT0iMCIgd2lkdGg9IjkiIGhlaWdodD0iNSIgZmlsbD0iIzM4NGYyMiIvPjxyZWN0IHg9IjAiIHk9IjciIHdpZHRoPSI3IiBoZWlnaHQ9IjciIGZpbGw9IiM1MTZiMzEiLz48cmVjdCB4PSI4IiB5PSI2IiB3aWR0aD0iMTAiIGhlaWdodD0iOCIgZmlsbD0iIzNkNTUyNSIvPjxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMTEiIHk9IjgiIHdpZHRoPSI0IiBoZWlnaHQ9IjMiIGZpbGw9IiM2YjhhM2UiIG9wYWNpdHk9Ii44Ii8+PHJlY3QgeD0iMSIgeT0iOSIgd2lkdGg9IjIiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48cmVjdCB4PSIxMyIgeT0iMiIgd2lkdGg9IjMiIGhlaWdodD0iMiIgZmlsbD0iIzhhNjA0MCIgb3BhY2l0eT0iLjkiLz48L3N2Zz4=';
+    isSatellite = false;
+  } else {
+    mapInstance.removeLayer(baseLayer);
+    satelliteLayer.addTo(mapInstance);
+    if (label) label.textContent = 'Street Map';
+    if (img)   img.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDE4IDE0Ij48cmVjdCB3aWR0aD0iMTgiIGhlaWdodD0iMTQiIGZpbGw9IiNlOGU0ZDgiLz48cmVjdCB4PSIwIiB5PSI1IiB3aWR0aD0iMTgiIGhlaWdodD0iMiIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjkiLz48cmVjdCB4PSIwIiB5PSI5IiB3aWR0aD0iMTgiIGhlaWdodD0iMS4yIiBmaWxsPSIjZDBjOGI4Ii8+PHJlY3QgeD0iNyIgeT0iMCIgd2lkdGg9IjIiIGhlaWdodD0iMTQiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii45Ii8+PHJlY3QgeD0iMTMiIHk9IjAiIHdpZHRoPSIxLjIiIGhlaWdodD0iMTQiIGZpbGw9IiNkMGM4YjgiLz48cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI0IiBmaWxsPSIjYzhkNGIwIiBvcGFjaXR5PSIuNyIvPjxyZWN0IHg9IjEwIiB5PSI4IiB3aWR0aD0iNiIgaGVpZ2h0PSI2IiBmaWxsPSIjYzhkNGIwIiBvcGFjaXR5PSIuNyIvPjwvc3ZnPg==';
+    isSatellite = true;
+  }
+  if (geojsonLayer) geojsonLayer.bringToFront();
+}
+
+function selectLayer(layer) {
+  // Reset previous selection
+  if (selectedLayer && selectedLayer !== layer) {
+    clearSelection();
+  }
+  selectedLayer = layer;
+  if (layer) {
+    layer.setStyle({ color: '#00c853', weight: 3, opacity: 1 });
+    layer.bringToFront();
+  }
+}
+
+function clearSelection() {
+  if (selectedLayer && geojsonLayer) {
+    geojsonLayer.resetStyle(selectedLayer);
+    selectedLayer = null;
+  }
+}
+
+function zoomToFullExtent() {
+  if (!mapInstance) return;
+  mapInstance.closePopup();
+  clearSelection();
+  const bounds = window._fullExtentBounds || geojsonLayer?.getBounds();
+  if (bounds?.isValid()) mapInstance.fitBounds(bounds, { padding: [20, 20], animate: true });
+}
+
+function zoomToFiltered() {
+  if (!mapInstance || !geojsonLayer) return;
+  const filteredData = getFilteredData();
+  const filteredCodes = new Set(filteredData.map(d => (d.blockCode || '').trim().toUpperCase()));
+  // Build bounds from only the filtered polygon layers
+  const filteredBounds = L.latLngBounds();
+  geojsonLayer.eachLayer(layer => {
+    const bc = (layer.feature?.properties[GEOJSON_BLOCK_FIELD] || '').trim().toUpperCase();
+    if (filteredCodes.has(bc)) {
+      const b = layer.getBounds?.();
+      if (b?.isValid()) filteredBounds.extend(b);
+    }
+  });
+  if (filteredBounds.isValid()) {
+    mapInstance.fitBounds(filteredBounds, { padding: [20, 20], animate: true });
+  }
+}
+
+let flyTimeout = null;
+function flyToBlock(blockCode) {
+  if (!blockCode) return;
+  window._flyToBlockPending = true;
+  switchTab('map');
+  if (!geojsonLayer) return;
+  geojsonLayer.eachLayer(layer => {
+    const bc = layer.feature?.properties[GEOJSON_BLOCK_FIELD] || '';
+    if (bc.trim().toUpperCase() !== blockCode.trim().toUpperCase()) return;
+    const bounds = layer.getBounds?.();
+    if (bounds?.isValid()) mapInstance.flyToBounds(bounds, { padding: [60,60], duration: 0.8 });
+    clearTimeout(flyTimeout);
+    flyTimeout = setTimeout(() => {
+      const center = bounds?.getCenter?.();
+      if (center) {
+        selectLayer(layer);
+        const pw2 = Math.min(480, window.innerWidth - 40);
+        const popup = L.popup({ maxWidth: pw2 })
+          .setContent(blockPopupHTML(blockCode))
+          .setLatLng(center);
+        popup.on('remove', () => {
+          if (selectedLayer === layer) clearSelection();
+        });
+        popup.openOn(mapInstance);
+      }
+    }, 900);
+  });
+}
 
 // ═══════════════════════════════════════════════════════════
 // PREFERENCE PERSISTENCE (localStorage)
