@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1c1712">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
   script-src 'self' 'unsafe-inline'
@@ -56,10 +59,11 @@
   --shadow-md: 0 3px 20px rgba(28,23,18,0.1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { height: 100%; overflow: hidden; }
+html { height: 100%; overflow: hidden; background: #1c1712; }
 body { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
 
 body {
+  background: #1c1712;
   font-family: 'DM Mono', monospace;
   background: var(--cream);
   color: var(--ink);
