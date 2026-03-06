@@ -3049,8 +3049,16 @@ async function loadData() {
             const bounds = window._fullExtentBounds || geojsonLayer?.getBounds();
             if (bounds?.isValid()) {
               mapInstance.invalidateSize({ animate: false });
-              mapInstance.fitBounds(bounds, { padding: [20, 20], animate: false });
+              mapInstance.fitBounds(bounds, { padding: [20, 20], animate: true });
               window._mapExtentFitted = true;
+              // Cache bounds for instant positioning on next load
+              try {
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+                localStorage.setItem('kylix_map_extent', JSON.stringify({
+                  sw: [sw.lat, sw.lng], ne: [ne.lat, ne.lng]
+                }));
+              } catch(e) {}
             }
           }));
         }
@@ -3260,6 +3268,13 @@ function switchTab(tab) {
         if (bounds?.isValid()) {
           mapInstance.fitBounds(bounds, { padding: [20, 20], animate: false });
           window._mapExtentFitted = true;
+          try {
+            const sw = bounds.getSouthWest();
+            const ne = bounds.getNorthEast();
+            localStorage.setItem('kylix_map_extent', JSON.stringify({
+              sw: [sw.lat, sw.lng], ne: [ne.lat, ne.lng]
+            }));
+          } catch(e) {}
         }
       }));
     }
@@ -3584,7 +3599,19 @@ function initMap() {
     return pos;
   };
 
-  mapInstance.setView([38.5, -122.8], 10); // fallback; overridden by fitBounds
+  // Use cached layer extent from previous session for instant positioning.
+  // Falls back to wine country default on very first load.
+  try {
+    const cached = localStorage.getItem('kylix_map_extent');
+    if (cached) {
+      const { sw, ne } = JSON.parse(cached);
+      mapInstance.fitBounds([[sw[0], sw[1]], [ne[0], ne[1]]], { padding: [20, 20], animate: false });
+    } else {
+      mapInstance.setView([38.5, -122.8], 10);
+    }
+  } catch(e) {
+    mapInstance.setView([38.5, -122.8], 10);
+  }
   initBaseLayers();
 
   if (geojsonData) renderGeoJSON(getFilteredData());
