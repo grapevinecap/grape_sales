@@ -3049,7 +3049,7 @@ async function loadData() {
             const bounds = window._fullExtentBounds || geojsonLayer?.getBounds();
             if (bounds?.isValid()) {
               mapInstance.invalidateSize({ animate: false });
-              mapInstance.fitBounds(bounds, { padding: [20, 20], animate: true });
+              mapInstance.fitBounds(bounds, { padding: [20, 20], animate: false });
               window._mapExtentFitted = true;
             }
           }));
