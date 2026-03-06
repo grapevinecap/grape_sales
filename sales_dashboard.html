@@ -2084,6 +2084,11 @@ function mkChart(id, cfg) {
 }
 
 const FONT = 'DM Mono';
+// Disable Chart.js animations globally — prevents expand-from-corner
+// effect when charts are redrawn after being hidden in a tab
+Chart.defaults.animation = false;
+Chart.defaults.animations = false;
+Chart.defaults.transitions = {};
 const TICK_STYLE = { font: { family: FONT, size: 9 }, color: '#7e7060' };
 const GRID_STYLE = { color: 'rgba(0,0,0,0.12)' };
 
@@ -3225,6 +3230,15 @@ function switchTab(tab) {
   document.getElementById('tab-map').style.display       = 'none';
   if (tab === 'dashboard') {
     document.getElementById('tab-dashboard').style.display = 'block';
+    // Rescale KPI text and resize charts after tab becomes visible
+    requestAnimationFrame(() => {
+      scaleKpiText();
+      updateKpiGrid();
+      // Notify all Chart.js instances to resize to their new container dimensions
+      Object.values(chartInstances).forEach(ch => {
+        if (ch) { try { ch.resize(); } catch(e) {} }
+      });
+    });
   } else {
     document.getElementById('tab-map').style.display = 'block';
   }
